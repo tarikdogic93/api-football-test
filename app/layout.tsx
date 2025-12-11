@@ -34,7 +34,7 @@ export default function RootLayout({
         <SidebarProvider>
           <AppSidebar />
           <main className="p-2 flex-1">
-            <SidebarTrigger />
+            <SidebarTrigger className="cursor-pointer" />
             {children}
           </main>
         </SidebarProvider>
