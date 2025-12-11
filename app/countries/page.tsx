@@ -24,7 +24,6 @@ export default function CountriesPage() {
 
   useEffect(() => {
     const handler = setTimeout(() => {
-      console.log("USE EFFECT SET DEBOUNCED QUERY");
       setDebouncedQuery({ search, name, code });
     }, 300);
     return () => clearTimeout(handler);
@@ -34,7 +33,6 @@ export default function CountriesPage() {
     if (!debouncedQuery) return;
 
     async function load() {
-      console.log("USE EFFECT LOADING");
       setLoading(true);
       try {
         let queryString = "";
