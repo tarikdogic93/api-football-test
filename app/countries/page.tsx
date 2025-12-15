@@ -25,7 +25,7 @@ export default function CountriesPage() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedQuery({ search, name, code });
-    }, 300);
+    }, 1000);
     return () => clearTimeout(handler);
   }, [search, name, code]);
 
@@ -58,8 +58,8 @@ export default function CountriesPage() {
   }, [debouncedQuery]);
 
   return (
-    <section className="p-6">
-      <div className="flex flex-col md:flex-row gap-4 mb-4 w-full">
+    <section className="p-6 h-full flex flex-col gap-4">
+      <div className="flex flex-col md:flex-row gap-4 w-full">
         <Input
           id="search"
           type="text"
@@ -97,14 +97,23 @@ export default function CountriesPage() {
           className="w-full md:w-1/3"
         />
       </div>
-
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-
-      {loading ? (
-        <CountriesSkeleton />
-      ) : (
-        <CountriesList countries={countries} />
-      )}
+      <div className="flex-1">
+        {loading ? (
+          <CountriesSkeleton />
+        ) : countries.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            {error ? (
+              <p className="text-destructive">{error}</p>
+            ) : (
+              <p className="text-muted-foreground">
+                No countries were found matching your search.
+              </p>
+            )}
+          </div>
+        ) : (
+          <CountriesList countries={countries} />
+        )}
+      </div>
     </section>
   );
 }
