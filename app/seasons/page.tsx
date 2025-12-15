@@ -33,10 +33,22 @@ export default function SeasonsPage() {
   }, []);
 
   return (
-    <section className="p-6">
-      {error && <div className="text-red-500 mb-4">{error}</div>}
-
-      {loading ? <SeasonsSkeleton /> : <SeasonsList seasons={seasons} />}
+    <section className="p-6 h-full flex flex-col gap-4">
+      <div className="flex-1">
+        {loading ? (
+          <SeasonsSkeleton />
+        ) : seasons.length === 0 ? (
+          <div className="h-full flex items-center justify-center">
+            {error ? (
+              <p className="text-destructive">{error}</p>
+            ) : (
+              <p className="text-muted-foreground">No seasons were found.</p>
+            )}
+          </div>
+        ) : (
+          <SeasonsList seasons={seasons} />
+        )}
+      </div>
     </section>
   );
 }
