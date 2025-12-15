@@ -5,6 +5,16 @@ const nextConfig: NextConfig = {
   experimental: {
     turbopackFileSystemCacheForDev: true,
   },
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "media.api-sports.io",
+        port: "",
+        pathname: "/football/venues/**",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
