@@ -1,10 +1,21 @@
-import { Earth, Users } from "lucide-react";
+import { Calendar, Earth, LucideIcon, Users } from "lucide-react";
 
-export const sidebarItems = [
+type SidebarItemType = {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+};
+
+export const sidebarItems: SidebarItemType[] = [
   {
     title: "Countries",
     url: "/countries",
     icon: Earth,
+  },
+  {
+    title: "Seasons",
+    url: "/seasons",
+    icon: Calendar,
   },
   {
     title: "Teams",
