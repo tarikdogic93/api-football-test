@@ -1,4 +1,4 @@
-import { CountryType } from "@/types";
+import { CountryType } from "@/features/countries/types";
 import Country from "@/features/countries/components/country";
 
 type CountriesListProps = {

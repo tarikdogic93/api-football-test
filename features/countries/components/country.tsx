@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import { CountryType } from "@/types";
+import { CountryType } from "@/features/countries/types";
 
 type CountryProps = CountryType;
 
