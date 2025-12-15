@@ -1,5 +1,5 @@
 import { CountryType } from "@/types";
-import Country from "@/components/country";
+import Country from "@/features/countries/components/country";
 
 type CountriesListProps = {
   countries: CountryType[];

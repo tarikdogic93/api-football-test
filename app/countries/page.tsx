@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 
-import { CountryType } from "@/types";
 import { Input } from "@/components/ui/input";
-import CountriesSkeleton from "@/components/countries-skeleton";
-import CountriesList from "@/components/countries-list";
+import { CountryType } from "@/features/countries/types";
+import CountriesSkeleton from "@/features/countries/components/countries-skeleton";
+import CountriesList from "@/features/countries/components/countries-list";
 
 export default function CountriesPage() {
   const [countries, setCountries] = useState<CountryType[]>([]);
@@ -61,6 +61,7 @@ export default function CountriesPage() {
     <section className="p-6">
       <div className="flex flex-col md:flex-row gap-4 mb-4 w-full">
         <Input
+          id="search"
           type="text"
           placeholder="Fuzzy search..."
           value={search}
@@ -72,6 +73,7 @@ export default function CountriesPage() {
           className="w-full md:w-1/3"
         />
         <Input
+          id="name"
           type="text"
           placeholder="Exact name..."
           value={name}
@@ -83,6 +85,7 @@ export default function CountriesPage() {
           className="w-full md:w-1/3"
         />
         <Input
+          id="code"
           type="text"
           placeholder="Exact code..."
           value={code}
