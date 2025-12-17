@@ -16,11 +16,11 @@ export default function Country({ name, code, flag }: CountryProps) {
             className="object-cover rounded-md"
           />
         ) : (
-          <div className="w-full h-full bg-accent rounded-md" />
+          <div className="w-16 h-10 bg-accent rounded-md" />
         )}
       </div>
       <p className="font-semibold text-primary truncate">{name}</p>
-      <p className="text-sm text-accent-foreground">{code ?? "—"}</p>
+      <p className="text-sm text-accent-foreground">{code}</p>
     </div>
   );
 }
