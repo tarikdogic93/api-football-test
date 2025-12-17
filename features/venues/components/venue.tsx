@@ -7,13 +7,15 @@ type VenueProps = { venue: VenueType };
 export default function VenueCard({ venue }: VenueProps) {
   const { name, city, country, capacity, surface, image } = venue;
 
+  const displayName = name ?? "Unnamed venue";
+
   return (
     <div className="p-4 shadow rounded flex flex-col items-center text-center gap-1">
       <div className="relative w-28 h-20">
         {image ? (
           <Image
             src={image}
-            alt={name}
+            alt={displayName}
             fill
             className="object-fill rounded-md"
           />
@@ -21,7 +23,9 @@ export default function VenueCard({ venue }: VenueProps) {
           <div className="w-full h-full bg-accent rounded-md" />
         )}
       </div>
-      <p className="font-semibold text-primary truncate max-w-full">{name}</p>
+      <p className="font-semibold text-primary truncate max-w-full">
+        {displayName}
+      </p>
       <p className="text-xs text-accent-foreground">
         <span className="font-semibold">City:</span> {city ?? "—"}
       </p>
