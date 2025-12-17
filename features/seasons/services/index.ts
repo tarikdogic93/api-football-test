@@ -32,26 +32,15 @@ export async function getSeasons(): Promise<SeasonType[]> {
   const updatedAt: number = snapshot.exists()
     ? snapshot.data()?.updatedAt || 0
     : 0;
-  const now = Date.now();
 
+  const now = Date.now();
   const isFresh = updatedAt && now - updatedAt < ONE_DAY;
+
   if (isFresh) return cached;
 
   const fetchedSeasons: SeasonType[] = await fetchSeasonsFromAPI();
 
-  const hasChanged =
-    cached.length !== fetchedSeasons.length ||
-    cached.some(
-      (season: SeasonType, index: number) => season !== fetchedSeasons[index]
-    );
-
-  if (hasChanged) {
-    await setDoc(
-      REF,
-      { seasons: fetchedSeasons, updatedAt: now },
-      { merge: true }
-    );
-  }
+  await setDoc(REF, { seasons: fetchedSeasons, updatedAt: now });
 
   return fetchedSeasons;
 }
