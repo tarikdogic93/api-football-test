@@ -58,21 +58,18 @@ export async function getVenue(
 
   const venues = await fetchVenuesFromAPI(params);
 
-  const updates: Record<string, any> = {};
-  for (const venue of venues) {
-    updates[venue.id] = { ...venue, updatedAt: now };
-  }
-  if (Object.keys(updates).length > 0) {
+  if (venues.length > 0) {
+    const updates: Record<string, VenueType & { updatedAt: number }> = {};
+
+    for (const venue of venues) {
+      updates[venue.id] = {
+        ...venue,
+        updatedAt: now,
+      };
+    }
+
     await setDoc(REF, { venues: updates }, { merge: true });
   }
 
-  const allResults = [...matchedCachedVenues];
-  const cachedIds = new Set(matchedCachedVenues.map((venue) => venue.id));
-  for (const venue of venues) {
-    if (!cachedIds.has(venue.id)) {
-      allResults.push(venue);
-    }
-  }
-
-  return allResults;
+  return venues;
 }
