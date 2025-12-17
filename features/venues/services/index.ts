@@ -1,5 +1,4 @@
 import { doc, getDoc, setDoc } from "firebase/firestore";
-
 import { db } from "@/lib/firebase";
 import { VenueType } from "@/features/venues/types";
 
@@ -24,35 +23,38 @@ export async function getVenue(
 ): Promise<VenueType[]> {
   const snapshot = await getDoc(REF);
   const cached = snapshot.exists() ? snapshot.data()?.venues || {} : {};
-
   const now = Date.now();
+
+  const [key] = Object.keys(params);
+  const paramValue = params[key].toLowerCase();
+
   const matchedCachedVenues: VenueType[] = [];
+  let hasStale = false;
 
   for (const venueId in cached) {
     const venue = cached[venueId];
-    if (now - venue.updatedAt > ONE_DAY) continue;
 
-    let isMatch = true;
-    for (const key in params) {
-      const paramValue = params[key].toLowerCase();
-      const venueValue = (venue as Record<string, string | number>)[key]
-        .toString()
-        .toLowerCase();
+    const fieldValue = (
+      venue as Record<string, string | number | null | undefined>
+    )[key];
+    if (!fieldValue) continue;
 
-      if (!venueValue.includes(paramValue)) {
-        isMatch = false;
-        break;
-      }
-    }
+    const venueValue = fieldValue.toString().toLowerCase();
+    const isMatch = venueValue === paramValue;
 
     if (isMatch) {
       matchedCachedVenues.push(venue);
+      if (now - venue.updatedAt > ONE_DAY) hasStale = true;
     }
   }
 
-  if (matchedCachedVenues.length > 0) {
-    return matchedCachedVenues;
-  }
+  const broaderSearchKeys = ["city", "country", "search"];
+  const isBroaderSearch = broaderSearchKeys.includes(key);
+
+  const needApiCall =
+    isBroaderSearch || hasStale || matchedCachedVenues.length === 0;
+
+  if (!needApiCall) return matchedCachedVenues;
 
   const venues = await fetchVenueFromAPI(params);
 
@@ -64,5 +66,13 @@ export async function getVenue(
     await setDoc(REF, { venues: updates }, { merge: true });
   }
 
-  return venues;
+  const allResults = [...matchedCachedVenues];
+  const cachedIds = new Set(matchedCachedVenues.map((venue) => venue.id));
+  for (const venue of venues) {
+    if (!cachedIds.has(venue.id)) {
+      allResults.push(venue);
+    }
+  }
+
+  return allResults;
 }
