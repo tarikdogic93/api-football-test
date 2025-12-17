@@ -20,7 +20,7 @@ export default function VenueCard({ venue }: VenueProps) {
             className="object-fill rounded-md"
           />
         ) : (
-          <div className="w-full h-full bg-accent rounded-md" />
+          <div className="w-28 h-20 bg-accent rounded-md" />
         )}
       </div>
       <p className="font-semibold text-primary truncate max-w-full">
