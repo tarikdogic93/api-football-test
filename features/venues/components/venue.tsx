@@ -4,7 +4,7 @@ import { VenueType } from "@/features/venues/types";
 
 type VenueProps = { venue: VenueType };
 
-export default function VenueCard({ venue }: VenueProps) {
+export default function Venue({ venue }: VenueProps) {
   const { name, city, country, capacity, surface, image } = venue;
 
   const displayName = name ?? "Unnamed venue";
