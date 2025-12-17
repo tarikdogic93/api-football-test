@@ -5,7 +5,7 @@ import { VenueType } from "@/features/venues/types";
 const ONE_DAY = 24 * 60 * 60 * 1000;
 const REF = doc(db, "meta", "venues");
 
-export async function fetchVenueFromAPI(params: Record<string, string>) {
+export async function fetchVenuesFromAPI(params: Record<string, string>) {
   const queryString = new URLSearchParams(params).toString();
   const response = await fetch(
     `https://v3.football.api-sports.io/venues?${queryString}`,
@@ -56,7 +56,7 @@ export async function getVenue(
 
   if (!needApiCall) return matchedCachedVenues;
 
-  const venues = await fetchVenueFromAPI(params);
+  const venues = await fetchVenuesFromAPI(params);
 
   const updates: Record<string, any> = {};
   for (const venue of venues) {
