@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 
+import PageSizeSelector from "@/components/page-size-selector";
 import MiniPagination from "@/components/mini-pagination";
 import { TimezoneType } from "@/features/timezones/types";
 import TimezonesSkeleton from "@/features/timezones/components/timezones-skeleton";
 import TimezonesList from "@/features/timezones/components/timezones-list";
 
-const PAGE_SIZE = 8;
+const DEFAULT_PAGE_SIZE = 8;
+const PAGE_SIZES = [5, 6, 7, 8, 9, 10];
 
 export default function TimezonesPage() {
   const [timezones, setTimezones] = useState<TimezoneType[]>([]);
@@ -15,7 +17,7 @@ export default function TimezonesPage() {
   const [error, setError] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   const totalPages = Math.ceil(total / pageSize);
 
@@ -39,7 +41,7 @@ export default function TimezonesPage() {
     }
 
     load();
-  }, [currentPage]);
+  }, [currentPage, pageSize]);
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -52,7 +54,7 @@ export default function TimezonesPage() {
 
       <div className="flex-1 flex flex-col justify-between">
         {loading ? (
-          <TimezonesSkeleton />
+          <TimezonesSkeleton pageSize={pageSize} />
         ) : timezones.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             {error ? (
@@ -64,12 +66,25 @@ export default function TimezonesPage() {
         ) : (
           <TimezonesList timezones={timezones} />
         )}
-        <MiniPagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={goToPage}
-          loading={loading}
-        />
+
+        <div className="flex items-center justify-between">
+          <PageSizeSelector
+            pageSize={pageSize}
+            pageSizes={PAGE_SIZES}
+            onChange={(value) => {
+              setPageSize(value);
+              setCurrentPage(1);
+            }}
+          />
+          <div>
+            <MiniPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              loading={loading}
+            />
+          </div>
+        </div>
       </div>
     </section>
   );
