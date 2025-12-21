@@ -8,7 +8,6 @@ import {
   startAfter,
   writeBatch,
   getCountFromServer,
-  QueryDocumentSnapshot,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
@@ -68,16 +67,8 @@ export async function getTimezones({
   }
 
   let q = query(TIMEZONES_COLLECTION, orderBy("name"), limit(pageSize));
-  let lastSnapshot: QueryDocumentSnapshot | null = null;
 
   if (cursor) {
-    const cursorSnapshot = await getDocs(
-      query(TIMEZONES_COLLECTION, orderBy("name"), startAfter(cursor), limit(1))
-    );
-
-    if (!cursorSnapshot.empty) {
-      lastSnapshot = cursorSnapshot.docs[0];
-    }
     q = query(
       TIMEZONES_COLLECTION,
       orderBy("name"),
