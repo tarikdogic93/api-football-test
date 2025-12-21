@@ -1,4 +1,4 @@
-import { sidebarItems } from "@/config/sidebar-items";
+import { sidebarItems } from "@/config/sidebar";
 import {
   Sidebar,
   SidebarContent,
