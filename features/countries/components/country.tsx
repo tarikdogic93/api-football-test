@@ -20,7 +20,7 @@ export default function Country({ name, code, flag }: CountryProps) {
         )}
       </div>
       <p className="font-semibold text-primary truncate">{name}</p>
-      <p className="text-sm text-accent-foreground">{code}</p>
+      <p className="text-sm text-accent-foreground">{code ?? "—"}</p>
     </div>
   );
 }
