@@ -13,7 +13,6 @@ type MiniPaginationProps = {
   totalPages: number;
   onPageChange: (page: number) => void;
   disabled?: boolean;
-  loading?: boolean;
 };
 
 export default function MiniPagination({
@@ -21,7 +20,6 @@ export default function MiniPagination({
   totalPages,
   onPageChange,
   disabled = false,
-  loading = false,
 }: MiniPaginationProps) {
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -35,7 +33,7 @@ export default function MiniPagination({
           href="#"
           onClick={() => goToPage(currentPage - 1)}
           isActive={false}
-          isDisabled={disabled || loading || currentPage === 1}
+          isDisabled={disabled || currentPage === 1}
         />
 
         <PaginationItem>
@@ -48,7 +46,7 @@ export default function MiniPagination({
           href="#"
           onClick={() => goToPage(currentPage + 1)}
           isActive={false}
-          isDisabled={disabled || loading || currentPage === totalPages}
+          isDisabled={disabled || currentPage === totalPages}
         />
       </PaginationContent>
     </Pagination>
