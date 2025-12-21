@@ -1,5 +1,6 @@
 import {
   Calendar,
+  Clock,
   Earth,
   LucideIcon,
   MapPin,
@@ -14,6 +15,11 @@ type SidebarItemType = {
 };
 
 export const sidebarItems: SidebarItemType[] = [
+  {
+    title: "Timezones",
+    url: "/timezones",
+    icon: Clock,
+  },
   {
     title: "Countries",
     url: "/countries",
