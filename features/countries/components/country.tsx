@@ -1,9 +1,7 @@
 import Image from "next/image";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { CountryType } from "@/features/countries/types";
-
-type CountryProps = CountryType;
+import { CountryProps } from "@/features/countries/types";
 
 export default function Country({ name, code, flag }: CountryProps) {
   return (

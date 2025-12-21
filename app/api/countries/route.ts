@@ -1,33 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getCountriesMap } from "@/features/countries/services";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { getCountries } from "@/features/countries/services";
 
 export async function GET(req: NextRequest) {
-  const nameQuery = req.nextUrl.searchParams.get("name")?.toLowerCase();
-  const codeQuery = req.nextUrl.searchParams.get("code")?.toLowerCase();
-  const searchQuery = req.nextUrl.searchParams.get("search")?.toLowerCase();
-
   try {
-    const countriesMap = await getCountriesMap();
+    const pageSizeParam = req.nextUrl.searchParams.get("pageSize");
+    const cursor = req.nextUrl.searchParams.get("cursor");
+    const nameQuery = req.nextUrl.searchParams.get("name")?.toLowerCase();
+    const codeQuery = req.nextUrl.searchParams.get("code")?.toLowerCase();
+    const searchQuery = req.nextUrl.searchParams.get("search")?.toLowerCase();
 
-    let countries = Object.values(countriesMap);
+    const pageSize = pageSizeParam
+      ? parseInt(pageSizeParam, 10)
+      : DEFAULT_PAGE_SIZE;
 
-    if (nameQuery) {
-      countries = countries.filter(
-        (country) => country.name.toLowerCase() === nameQuery
-      );
-    } else if (codeQuery) {
-      countries = countries.filter(
-        (country) => country.code?.toLowerCase() === codeQuery
-      );
-    } else if (searchQuery) {
-      countries = countries.filter((country) =>
-        country.name.toLowerCase().includes(searchQuery)
+    if (pageSize < 1) {
+      return NextResponse.json(
+        { error: "Invalid pagination parameters" },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json(countries);
-  } catch {
+    const result = await getCountries({
+      pageSize,
+      cursor,
+      nameQuery,
+      codeQuery,
+      searchQuery,
+    });
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error(error);
     return NextResponse.json(
       { error: "Failed to load countries" },
       { status: 500 }
