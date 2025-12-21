@@ -90,6 +90,7 @@ export default function TimezonesPage() {
           <PageSizeSelector
             pageSize={pageSize}
             pageSizes={PAGE_SIZES}
+            disabled={loading}
             onChange={handlePageSizeChange}
           />
           <div>
@@ -97,7 +98,7 @@ export default function TimezonesPage() {
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={goToPage}
-              loading={loading}
+              disabled={loading}
             />
           </div>
         </div>
