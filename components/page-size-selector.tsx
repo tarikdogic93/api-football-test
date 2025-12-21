@@ -14,15 +14,19 @@ type PageSizeSelectorProps = {
   pageSize: number;
   pageSizes: number[];
   onChange: (value: number) => void;
+  disabled?: boolean;
 };
 
 export default function PageSizeSelector({
   pageSize,
   pageSizes,
   onChange,
+  disabled = false,
 }: PageSizeSelectorProps) {
   const handleChange = (value: string) => {
-    onChange(Number(value));
+    if (!disabled) {
+      onChange(Number(value));
+    }
   };
 
   return (
@@ -32,6 +36,7 @@ export default function PageSizeSelector({
         name="pageSize"
         value={pageSize.toString()}
         onValueChange={handleChange}
+        disabled={disabled}
       >
         <SelectTrigger id="pageSize" className="w-[120px] cursor-pointer">
           <SelectValue placeholder="Page size" />
