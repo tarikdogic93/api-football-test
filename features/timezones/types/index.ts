@@ -2,6 +2,16 @@ export type TimezoneType = {
   name: string;
 };
 
+export type TimezonesSkeletonProps = {
+  pageSize: number;
+};
+
+export type TimezonesListProps = {
+  timezones: TimezoneType[];
+};
+
+export type TimezoneProps = TimezoneType;
+
 export type GetTimezonesParamsType = {
   pageSize: number;
   cursor: string | null;
