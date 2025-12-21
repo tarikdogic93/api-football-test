@@ -13,6 +13,12 @@ const nextConfig: NextConfig = {
         port: "",
         pathname: "/football/venues/**",
       },
+      {
+        protocol: "https",
+        hostname: "media.api-sports.io",
+        port: "",
+        pathname: "/football/teams/**",
+      },
     ],
   },
 };
