@@ -5,12 +5,18 @@ import {
   query,
   orderBy,
   limit,
+  startAfter,
   writeBatch,
   getCountFromServer,
+  QueryDocumentSnapshot,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { TimezoneType } from "@/features/timezones/types";
+import {
+  GetTimezonesParamsType,
+  TimezonesAPIResponse,
+  TimezoneType,
+} from "@/features/timezones/types";
 
 const TIMEZONES_COLLECTION = collection(db, "timezones");
 
@@ -38,13 +44,10 @@ export async function fetchTimezonesFromAPI(): Promise<string[]> {
 
 let totalCountCache: number | null = null;
 
-export async function getTimezones(
-  page: number,
-  pageSize: number
-): Promise<{
-  timezones: TimezoneType[];
-  total: number;
-}> {
+export async function getTimezones({
+  pageSize,
+  cursor,
+}: GetTimezonesParamsType): Promise<TimezonesAPIResponse> {
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
   if (snapshotCheck.empty) {
     const fetchedTimezones = await fetchTimezonesFromAPI();
@@ -64,15 +67,36 @@ export async function getTimezones(
     totalCountCache = totalSnapshot.data().count;
   }
 
-  const total = totalCountCache;
+  let q = query(TIMEZONES_COLLECTION, orderBy("name"), limit(pageSize));
+  let lastSnapshot: QueryDocumentSnapshot | null = null;
 
-  let q = query(TIMEZONES_COLLECTION, orderBy("name"), limit(pageSize * page));
+  if (cursor) {
+    const cursorSnapshot = await getDocs(
+      query(TIMEZONES_COLLECTION, orderBy("name"), startAfter(cursor), limit(1))
+    );
+
+    if (!cursorSnapshot.empty) {
+      lastSnapshot = cursorSnapshot.docs[0];
+    }
+    q = query(
+      TIMEZONES_COLLECTION,
+      orderBy("name"),
+      startAfter(cursor),
+      limit(pageSize)
+    );
+  }
+
   const snapshot = await getDocs(q);
-  const allDocs = snapshot.docs;
+  const timezones = snapshot.docs.map((doc) => doc.data() as TimezoneType);
 
-  const startIndex = (page - 1) * pageSize;
-  const pageDocs = allDocs.slice(startIndex, startIndex + pageSize);
-  const timezones = pageDocs.map((doc) => doc.data() as TimezoneType);
+  const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+  const nextCursor = lastDoc ? lastDoc.get("name") : null;
+  const hasNextPage = nextCursor !== null;
 
-  return { timezones, total };
+  return {
+    total: totalCountCache,
+    timezones,
+    nextCursor,
+    hasNextPage,
+  };
 }

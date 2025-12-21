@@ -1,15 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
 import PageSizeSelector from "@/components/page-size-selector";
 import MiniPagination from "@/components/mini-pagination";
-import { TimezoneType } from "@/features/timezones/types";
+import { TimezonesAPIResponse, TimezoneType } from "@/features/timezones/types";
 import TimezonesSkeleton from "@/features/timezones/components/timezones-skeleton";
 import TimezonesList from "@/features/timezones/components/timezones-list";
-
-const DEFAULT_PAGE_SIZE = 8;
-const PAGE_SIZES = [5, 6, 7, 8, 9, 10];
 
 export default function TimezonesPage() {
   const [timezones, setTimezones] = useState<TimezoneType[]>([]);
@@ -19,20 +17,35 @@ export default function TimezonesPage() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
+  const cursors = useRef<{ [key: number]: string | null }>({ 1: null });
+
   const totalPages = Math.ceil(total / pageSize);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       setError("");
+
       try {
-        const res = await fetch(
-          `/api/timezones?page=${currentPage}&pageSize=${pageSize}`
-        );
+        const cursor = cursors.current[currentPage] ?? null;
+
+        const params = new URLSearchParams({
+          pageSize: String(pageSize),
+        });
+
+        if (cursor) params.set("cursor", cursor);
+
+        const res = await fetch(`/api/timezones?${params.toString()}`);
         if (!res.ok) throw new Error("Failed to fetch timezones");
-        const json = await res.json();
+
+        const json: TimezonesAPIResponse = await res.json();
+
         setTimezones(json.timezones);
         setTotal(json.total);
+
+        if (json.hasNextPage) {
+          cursors.current[currentPage + 1] = json.nextCursor;
+        }
       } catch (err) {
         setError("Could not load timezones.");
       } finally {
@@ -46,6 +59,12 @@ export default function TimezonesPage() {
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
     setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    cursors.current = { 1: null };
   };
 
   return (
@@ -71,10 +90,7 @@ export default function TimezonesPage() {
           <PageSizeSelector
             pageSize={pageSize}
             pageSizes={PAGE_SIZES}
-            onChange={(value) => {
-              setPageSize(value);
-              setCurrentPage(1);
-            }}
+            onChange={handlePageSizeChange}
           />
           <div>
             <MiniPagination
