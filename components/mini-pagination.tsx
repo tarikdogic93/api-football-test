@@ -1,17 +1,11 @@
 "use client";
 
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-} from "lucide-react";
-
-import {
   Pagination,
   PaginationContent,
   PaginationItem,
-  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 } from "@/components/ui/pagination";
 
 type MiniPaginationProps = {
@@ -35,27 +29,12 @@ export default function MiniPagination({
   return (
     <Pagination>
       <PaginationContent className="gap-2">
-        <PaginationItem>
-          <PaginationLink
-            href="#"
-            onClick={() => goToPage(1)}
-            isActive={false}
-            isDisabled={loading || currentPage === 1}
-          >
-            <ChevronsLeft />
-          </PaginationLink>
-        </PaginationItem>
-
-        <PaginationItem>
-          <PaginationLink
-            href="#"
-            onClick={() => goToPage(currentPage - 1)}
-            isActive={false}
-            isDisabled={loading || currentPage === 1}
-          >
-            <ChevronLeft />
-          </PaginationLink>
-        </PaginationItem>
+        <PaginationPrevious
+          href="#"
+          onClick={() => goToPage(currentPage - 1)}
+          isActive={false}
+          isDisabled={loading || currentPage === 1}
+        />
 
         <PaginationItem>
           <p className="text-sm">
@@ -63,27 +42,12 @@ export default function MiniPagination({
           </p>
         </PaginationItem>
 
-        <PaginationItem>
-          <PaginationLink
-            href="#"
-            onClick={() => goToPage(currentPage + 1)}
-            isActive={false}
-            isDisabled={loading || currentPage === totalPages}
-          >
-            <ChevronRight />
-          </PaginationLink>
-        </PaginationItem>
-
-        <PaginationItem>
-          <PaginationLink
-            href="#"
-            onClick={() => goToPage(totalPages)}
-            isActive={false}
-            isDisabled={loading || currentPage === totalPages}
-          >
-            <ChevronsRight />
-          </PaginationLink>
-        </PaginationItem>
+        <PaginationNext
+          href="#"
+          onClick={() => goToPage(currentPage + 1)}
+          isActive={false}
+          isDisabled={loading || currentPage === totalPages}
+        />
       </PaginationContent>
     </Pagination>
   );
