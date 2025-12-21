@@ -1,4 +1,13 @@
-import { collection, doc, getDocs, writeBatch } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  writeBatch,
+  getCountFromServer,
+} from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
 import { TimezoneType } from "@/features/timezones/types";
@@ -27,33 +36,43 @@ export async function fetchTimezonesFromAPI(): Promise<string[]> {
   return json.response as string[];
 }
 
-export async function getTimezonesMap(): Promise<Record<string, TimezoneType>> {
-  const snapshot = await getDocs(TIMEZONES_COLLECTION);
+let totalCountCache: number | null = null;
 
-  if (!snapshot.empty) {
-    return Object.fromEntries(
-      snapshot.docs.map((documentSnapshot) => [
-        documentSnapshot.id,
-        documentSnapshot.data() as TimezoneType,
-      ])
-    );
+export async function getTimezones(
+  page: number,
+  pageSize: number
+): Promise<{
+  timezones: TimezoneType[];
+  total: number;
+}> {
+  const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
+  if (snapshotCheck.empty) {
+    const fetchedTimezones = await fetchTimezonesFromAPI();
+    const batch = writeBatch(db);
+
+    for (const timezone of fetchedTimezones) {
+      const documentId = generateSafeDocumentId(timezone);
+      const timezoneData: TimezoneType = { name: timezone };
+      batch.set(doc(TIMEZONES_COLLECTION, documentId), timezoneData);
+    }
+
+    await batch.commit();
   }
 
-  const fetchedTimezones = await fetchTimezonesFromAPI();
-  const batch = writeBatch(db);
-  const timezonesMap: Record<string, TimezoneType> = {};
-
-  for (const timezone of fetchedTimezones) {
-    const documentId = generateSafeDocumentId(timezone);
-    const timezoneData: TimezoneType = { name: timezone };
-
-    const timezoneDocumentReference = doc(TIMEZONES_COLLECTION, documentId);
-    batch.set(timezoneDocumentReference, timezoneData);
-
-    timezonesMap[documentId] = timezoneData;
+  if (totalCountCache === null) {
+    const totalSnapshot = await getCountFromServer(TIMEZONES_COLLECTION);
+    totalCountCache = totalSnapshot.data().count;
   }
 
-  await batch.commit();
+  const total = totalCountCache;
 
-  return timezonesMap;
+  let q = query(TIMEZONES_COLLECTION, orderBy("name"), limit(pageSize * page));
+  const snapshot = await getDocs(q);
+  const allDocs = snapshot.docs;
+
+  const startIndex = (page - 1) * pageSize;
+  const pageDocs = allDocs.slice(startIndex, startIndex + pageSize);
+  const timezones = pageDocs.map((doc) => doc.data() as TimezoneType);
+
+  return { timezones, total };
 }
