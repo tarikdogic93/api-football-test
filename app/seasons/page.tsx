@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { SeasonType } from "@/features/seasons/types";
+import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
+import PageSizeSelector from "@/components/page-size-selector";
+import MiniPagination from "@/components/mini-pagination";
+import { SeasonsAPIResponse, SeasonType } from "@/features/seasons/types";
 import SeasonsSkeleton from "@/features/seasons/components/seasons-skeleton";
 import SeasonsList from "@/features/seasons/components/seasons-list";
 
@@ -10,6 +13,13 @@ export default function SeasonsPage() {
   const [seasons, setSeasons] = useState<SeasonType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+
+  const cursors = useRef<{ [key: number]: string | null }>({ 1: null });
+
+  const totalPages = Math.ceil(total / pageSize);
 
   useEffect(() => {
     async function load() {
@@ -17,37 +27,81 @@ export default function SeasonsPage() {
       setError("");
 
       try {
-        const res = await fetch("/api/seasons");
+        const cursor = cursors.current[currentPage] ?? null;
+
+        const params = new URLSearchParams({
+          pageSize: String(pageSize),
+        });
+
+        if (cursor) params.set("cursor", cursor);
+
+        const res = await fetch(`/api/seasons?${params.toString()}`);
         if (!res.ok) throw new Error("Failed to fetch seasons");
 
-        const json = await res.json();
-        setSeasons(json as SeasonType[]);
+        const json = (await res.json()) as SeasonsAPIResponse;
+
+        setSeasons(json.seasons);
+        setTotal(json.total);
+
+        if (json.hasNextPage) {
+          cursors.current[currentPage + 1] = json.nextCursor;
+        }
       } catch (err) {
-        setError("Could not load seasons data.");
+        setError("Could not load seasons.");
       } finally {
         setLoading(false);
       }
     }
 
     load();
-  }, []);
+  }, [currentPage, pageSize]);
+
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (value: number) => {
+    setPageSize(value);
+    setCurrentPage(1);
+    cursors.current = { 1: null };
+  };
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <div className="flex-1">
+      <h1 className="text-2xl font-bold">Seasons</h1>
+
+      <div className="flex-1 flex flex-col justify-between">
         {loading ? (
-          <SeasonsSkeleton />
+          <SeasonsSkeleton pageSize={pageSize} />
         ) : seasons.length === 0 ? (
           <div className="h-full flex items-center justify-center">
             {error ? (
               <p className="text-destructive">{error}</p>
             ) : (
-              <p className="text-muted-foreground">No seasons were found.</p>
+              <p className="text-muted-foreground">No seasons available.</p>
             )}
           </div>
         ) : (
           <SeasonsList seasons={seasons} />
         )}
+
+        <div className="flex items-center justify-between">
+          <PageSizeSelector
+            pageSize={pageSize}
+            pageSizes={PAGE_SIZES}
+            disabled={loading}
+            onChange={handlePageSizeChange}
+          />
+          <div>
+            <MiniPagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              disabled={loading}
+            />
+          </div>
+        </div>
       </div>
     </section>
   );

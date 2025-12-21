@@ -1,12 +1,29 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  startAfter,
+  writeBatch,
+  getCountFromServer,
+} from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import type { SeasonType } from "@/features/seasons/types";
+import {
+  GetSeasonsParamsType,
+  SeasonsAPIResponse,
+  SeasonType,
+} from "@/features/seasons/types";
 
-const ONE_DAY = 24 * 60 * 60 * 1000;
-const REF = doc(db, "meta", "seasons");
+const SEASONS_COLLECTION = collection(db, "seasons");
 
-export async function fetchSeasonsFromAPI(): Promise<SeasonType[]> {
+function generateSafeDocumentId(year: number): string {
+  return String(year);
+}
+
+export async function fetchSeasonsFromAPI(): Promise<number[]> {
   const response = await fetch(
     "https://v3.football.api-sports.io/leagues/seasons",
     {
@@ -21,26 +38,56 @@ export async function fetchSeasonsFromAPI(): Promise<SeasonType[]> {
   }
 
   const json = await response.json();
-  return json.response as SeasonType[];
+  return json.response as number[];
 }
 
-export async function getSeasons(): Promise<SeasonType[]> {
-  const snapshot = await getDoc(REF);
-  const cached: SeasonType[] = snapshot.exists()
-    ? snapshot.data()?.seasons || []
-    : [];
-  const updatedAt: number = snapshot.exists()
-    ? snapshot.data()?.updatedAt || 0
-    : 0;
+let totalCountCache: number | null = null;
 
-  const now = Date.now();
-  const isFresh = updatedAt && now - updatedAt < ONE_DAY;
+export async function getSeasons({
+  pageSize,
+  cursor,
+}: GetSeasonsParamsType): Promise<SeasonsAPIResponse> {
+  const snapshotCheck = await getDocs(query(SEASONS_COLLECTION, limit(1)));
+  if (snapshotCheck.empty) {
+    const fetchedSeasons = await fetchSeasonsFromAPI();
+    const batch = writeBatch(db);
 
-  if (isFresh) return cached;
+    for (const season of fetchedSeasons) {
+      const documentId = generateSafeDocumentId(season);
+      const seasonData: SeasonType = { year: season };
+      batch.set(doc(SEASONS_COLLECTION, documentId), seasonData);
+    }
 
-  const fetchedSeasons: SeasonType[] = await fetchSeasonsFromAPI();
+    await batch.commit();
+  }
 
-  await setDoc(REF, { seasons: fetchedSeasons, updatedAt: now });
+  if (totalCountCache === null) {
+    const totalSnapshot = await getCountFromServer(SEASONS_COLLECTION);
+    totalCountCache = totalSnapshot.data().count;
+  }
 
-  return fetchedSeasons;
+  let q = query(SEASONS_COLLECTION, orderBy("year"), limit(pageSize));
+
+  if (cursor) {
+    q = query(
+      SEASONS_COLLECTION,
+      orderBy("year"),
+      startAfter(Number(cursor)),
+      limit(pageSize)
+    );
+  }
+
+  const snapshot = await getDocs(q);
+  const seasons = snapshot.docs.map((doc) => doc.data() as SeasonType);
+
+  const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+  const nextCursor = lastDoc ? String(lastDoc.get("year")) : null;
+  const hasNextPage = nextCursor !== null;
+
+  return {
+    total: totalCountCache,
+    seasons,
+    nextCursor,
+    hasNextPage,
+  };
 }
