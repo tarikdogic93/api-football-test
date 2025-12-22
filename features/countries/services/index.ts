@@ -15,7 +15,6 @@ import {
 
 import { db } from "@/lib/firebase";
 import { ONE_DAY } from "@/lib/constants";
-import { generateSearchTerms } from "@/lib/utils";
 import {
   CountryType,
   GetCountriesParamsType,
@@ -48,6 +47,24 @@ export async function getCountries({
 }: GetCountriesParamsType): Promise<CountriesAPIResponse> {
   const now = Date.now();
 
+  if (searchQuery) {
+    const countries = await fetchCountriesFromAPI();
+
+    const filtered = countries.filter((country) =>
+      country.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const start = cursor ? Number(cursor) : 0;
+    const end = start + pageSize;
+
+    return {
+      total: filtered.length,
+      countries: filtered.slice(start, end),
+      nextCursor: end < filtered.length ? String(end) : null,
+      hasNextPage: end < filtered.length,
+    };
+  }
+
   const snapshotCheck = await getDocs(query(COUNTRIES_COLLECTION, limit(1)));
   let shouldFetchAPI = false;
 
@@ -71,7 +88,6 @@ export async function getCountries({
         nameLower: country.name.toLowerCase(),
         ...(country.code ? { codeLower: country.code.toLowerCase() } : {}),
         updatedAt: now,
-        searchTerms: generateSearchTerms(country.name),
       });
     }
 
@@ -99,28 +115,12 @@ export async function getCountries({
   } else {
     const constraints: QueryConstraint[] = [];
 
-    if (searchQuery) {
-      // Requires an index
-      constraints.push(
-        where("searchTerms", "array-contains", searchQuery.toLowerCase())
-      );
-    }
-
     constraints.push(orderBy("name"));
 
     if (cursor) {
       const cursorSnapshot = await getDocs(
         query(
           COUNTRIES_COLLECTION,
-          ...(searchQuery
-            ? [
-                where(
-                  "searchTerms",
-                  "array-contains",
-                  searchQuery.toLowerCase()
-                ),
-              ]
-            : []),
           orderBy("name"),
           where("name", "==", cursor),
           limit(1)
@@ -154,17 +154,13 @@ export async function getCountries({
       : null;
 
   let total = totalCountCache;
-  if (nameQuery || codeQuery || searchQuery) {
+  if (nameQuery || codeQuery) {
     const countConstraints: QueryConstraint[] = [];
 
     if (nameQuery) {
       countConstraints.push(where("nameLower", "==", nameQuery.toLowerCase()));
     } else if (codeQuery) {
       countConstraints.push(where("codeLower", "==", codeQuery.toLowerCase()));
-    } else if (searchQuery) {
-      countConstraints.push(
-        where("searchTerms", "array-contains", searchQuery.toLowerCase())
-      );
     }
 
     const countQuery = query(COUNTRIES_COLLECTION, ...countConstraints);
