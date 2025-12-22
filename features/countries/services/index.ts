@@ -47,24 +47,6 @@ export async function getCountries({
 }: GetCountriesParamsType): Promise<CountriesAPIResponse> {
   const now = Date.now();
 
-  if (searchQuery) {
-    const countries = await fetchCountriesFromAPI();
-
-    const filtered = countries.filter((country) =>
-      country.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const start = cursor ? Number(cursor) : 0;
-    const end = start + pageSize;
-
-    return {
-      total: filtered.length,
-      countries: filtered.slice(start, end),
-      nextCursor: end < filtered.length ? String(end) : null,
-      hasNextPage: end < filtered.length,
-    };
-  }
-
   const snapshotCheck = await getDocs(query(COUNTRIES_COLLECTION, limit(1)));
   let shouldFetchAPI = false;
 
@@ -92,6 +74,25 @@ export async function getCountries({
     }
 
     await batch.commit();
+  }
+
+  if (searchQuery) {
+    const snapshot = await getDocs(COUNTRIES_COLLECTION);
+    const allCountries = snapshot.docs.map((doc) => doc.data() as CountryType);
+
+    const filtered = allCountries.filter((country) =>
+      country.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const start = cursor ? Number(cursor) : 0;
+    const end = start + pageSize;
+
+    return {
+      total: filtered.length,
+      countries: filtered.slice(start, end),
+      nextCursor: end < filtered.length ? String(end) : null,
+      hasNextPage: end < filtered.length,
+    };
   }
 
   if (totalCountCache === null) {
@@ -155,15 +156,15 @@ export async function getCountries({
 
   let total = totalCountCache;
   if (nameQuery || codeQuery) {
-    const countConstraints: QueryConstraint[] = [];
+    const constraints: QueryConstraint[] = [];
 
     if (nameQuery) {
-      countConstraints.push(where("nameLower", "==", nameQuery.toLowerCase()));
+      constraints.push(where("nameLower", "==", nameQuery.toLowerCase()));
     } else if (codeQuery) {
-      countConstraints.push(where("codeLower", "==", codeQuery.toLowerCase()));
+      constraints.push(where("codeLower", "==", codeQuery.toLowerCase()));
     }
 
-    const countQuery = query(COUNTRIES_COLLECTION, ...countConstraints);
+    const countQuery = query(COUNTRIES_COLLECTION, ...constraints);
     const countSnapshot = await getCountFromServer(countQuery);
     total = countSnapshot.data().count;
   }
