@@ -12,7 +12,7 @@ import {
 
 import { db } from "@/lib/firebase";
 import {
-  GetSeasonsParamsType,
+  GetSeasonsParams,
   SeasonsAPIResponse,
   SeasonType,
 } from "@/features/seasons/types";
@@ -46,7 +46,7 @@ let totalCountCache: number | null = null;
 export async function getSeasons({
   pageSize,
   cursor,
-}: GetSeasonsParamsType): Promise<SeasonsAPIResponse> {
+}: GetSeasonsParams): Promise<SeasonsAPIResponse> {
   const snapshotCheck = await getDocs(query(SEASONS_COLLECTION, limit(1)));
   if (snapshotCheck.empty) {
     const fetchedSeasons = await fetchSeasonsFromAPI();

@@ -12,7 +12,7 @@ import {
 
 import { db } from "@/lib/firebase";
 import {
-  GetTimezonesParamsType,
+  GetTimezonesParams,
   TimezonesAPIResponse,
   TimezoneType,
 } from "@/features/timezones/types";
@@ -46,7 +46,7 @@ let totalCountCache: number | null = null;
 export async function getTimezones({
   pageSize,
   cursor,
-}: GetTimezonesParamsType): Promise<TimezonesAPIResponse> {
+}: GetTimezonesParams): Promise<TimezonesAPIResponse> {
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
   if (snapshotCheck.empty) {
     const fetchedTimezones = await fetchTimezonesFromAPI();

@@ -14,7 +14,7 @@ export type CountriesListProps = {
 
 export type CountryProps = CountryType;
 
-export type GetCountriesParamsType = {
+export type GetCountriesParams = {
   pageSize: number;
   cursor: string | null;
   nameQuery?: string;

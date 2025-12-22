@@ -17,7 +17,7 @@ import { db } from "@/lib/firebase";
 import { ONE_DAY } from "@/lib/constants";
 import {
   CountryType,
-  GetCountriesParamsType,
+  GetCountriesParams,
   CountriesAPIResponse,
 } from "@/features/countries/types";
 
@@ -44,7 +44,7 @@ export async function getCountries({
   nameQuery,
   codeQuery,
   searchQuery,
-}: GetCountriesParamsType): Promise<CountriesAPIResponse> {
+}: GetCountriesParams): Promise<CountriesAPIResponse> {
   const now = Date.now();
 
   const snapshotCheck = await getDocs(query(COUNTRIES_COLLECTION, limit(1)));

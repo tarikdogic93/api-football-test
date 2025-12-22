@@ -10,7 +10,7 @@ export type SeasonsListProps = {
   seasons: SeasonType[];
 };
 
-export type GetSeasonsParamsType = {
+export type GetSeasonsParams = {
   pageSize: number;
   cursor: string | null;
 };

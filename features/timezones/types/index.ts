@@ -12,7 +12,7 @@ export type TimezonesListProps = {
 
 export type TimezoneProps = TimezoneType;
 
-export type GetTimezonesParamsType = {
+export type GetTimezonesParams = {
   pageSize: number;
   cursor: string | null;
 };
