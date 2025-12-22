@@ -192,7 +192,9 @@ export default function CountriesPage() {
             )}
           />
 
-          <Button type="submit">Search</Button>
+          <Button type="submit" className="cursor-pointer">
+            Search
+          </Button>
         </form>
       </Form>
 
