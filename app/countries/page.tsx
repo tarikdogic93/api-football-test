@@ -1,24 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormMessage,
+} from "@/components/ui/form";
 import PageSizeSelector from "@/components/page-size-selector";
 import MiniPagination from "@/components/mini-pagination";
 import { CountriesAPIResponse, CountryType } from "@/features/countries/types";
+import { searchCountriesSchema } from "@/features/countries/schemas";
 import CountriesSkeleton from "@/features/countries/components/countries-skeleton";
 import CountriesList from "@/features/countries/components/countries-list";
+
+type SearchFormValues = z.infer<typeof searchCountriesSchema>;
 
 export default function CountriesPage() {
   const [countries, setCountries] = useState<CountryType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const [search, setSearch] = useState("");
-  const [name, setName] = useState("");
-  const [code, setCode] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
@@ -35,8 +44,21 @@ export default function CountriesPage() {
     code: "",
   });
 
-  const handleSearch = () => {
-    setQueryParams({ search, name, code });
+  const form = useForm<SearchFormValues>({
+    resolver: zodResolver(searchCountriesSchema),
+    defaultValues: {
+      name: "",
+      code: "",
+      search: "",
+    },
+  });
+
+  const handleSearch = (values: SearchFormValues) => {
+    setQueryParams({
+      name: values.name || "",
+      code: values.code || "",
+      search: values.search || "",
+    });
     setCurrentPage(1);
     cursors.current = { 1: null };
   };
@@ -96,50 +118,83 @@ export default function CountriesPage() {
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <div className="flex flex-col md:flex-row gap-4 w-full">
-        <Input
-          id="name"
-          type="text"
-          placeholder="Exact name..."
-          value={name}
-          autoComplete="off"
-          onChange={(e) => {
-            setName(e.target.value);
-            setSearch("");
-            setCode("");
-          }}
-          className="w-full md:w-1/3"
-        />
-        <Input
-          id="code"
-          type="text"
-          placeholder="Exact code..."
-          value={code}
-          autoComplete="off"
-          onChange={(e) => {
-            setCode(e.target.value);
-            setSearch("");
-            setName("");
-          }}
-          className="w-full md:w-1/3"
-        />
-        <Input
-          id="search"
-          type="text"
-          placeholder="Partial name search..."
-          value={search}
-          autoComplete="off"
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setName("");
-            setCode("");
-          }}
-          className="w-full md:w-1/3"
-        />
-        <Button className="cursor-pointer" onClick={handleSearch}>
-          Search
-        </Button>
-      </div>
+      <Form {...form}>
+        <form
+          onSubmit={form.handleSubmit(handleSearch)}
+          className="flex flex-col md:flex-row gap-4 w-full"
+        >
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem className="w-full md:w-1/3">
+                <FormControl>
+                  <Input
+                    autoComplete="off"
+                    placeholder="Exact name..."
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue("code", "");
+                      form.setValue("search", "");
+                      form.trigger();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="code"
+            render={({ field }) => (
+              <FormItem className="w-full md:w-1/3">
+                <FormControl>
+                  <Input
+                    autoComplete="off"
+                    placeholder="Exact code..."
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue("name", "");
+                      form.setValue("search", "");
+                      form.trigger();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="search"
+            render={({ field }) => (
+              <FormItem className="w-full md:w-1/3">
+                <FormControl>
+                  <Input
+                    autoComplete="off"
+                    placeholder="Partial name search..."
+                    {...field}
+                    onChange={(e) => {
+                      field.onChange(e);
+                      form.setValue("name", "");
+                      form.setValue("code", "");
+                      form.trigger();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit">Search</Button>
+        </form>
+      </Form>
 
       <div className="flex-1 flex flex-col justify-between">
         {loading ? (
