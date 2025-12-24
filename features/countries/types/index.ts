@@ -16,15 +16,14 @@ export type CountryProps = CountryType;
 
 export type GetCountriesParams = {
   pageSize: number;
-  cursor: string | null;
+  offset: number;
   nameQuery?: string;
   codeQuery?: string;
   searchQuery?: string;
 };
 
 export type CountriesAPIResponse = {
-  total: number;
   countries: CountryType[];
-  nextCursor: string | null;
-  hasNextPage: boolean;
+  total: number;
+  offset: number;
 };

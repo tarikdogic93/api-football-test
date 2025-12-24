@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -32,7 +32,6 @@ export default function CountriesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
-  const cursors = useRef<{ [key: number]: string | null }>({ 1: null });
 
   const [queryParams, setQueryParams] = useState<{
     search: string;
@@ -60,11 +59,10 @@ export default function CountriesPage() {
       search: values.search || "",
     });
     setCurrentPage(1);
-    cursors.current = { 1: null };
   };
 
   const isExactQuery = !!queryParams.name || !!queryParams.code;
-  const totalPages = isExactQuery ? 1 : Math.ceil(total / pageSize);
+  const totalPages = Math.ceil(total / pageSize);
 
   useEffect(() => {
     async function load() {
@@ -72,12 +70,12 @@ export default function CountriesPage() {
       setError("");
 
       try {
-        const cursor = cursors.current[currentPage] ?? null;
         const params = new URLSearchParams();
+        const offset = isExactQuery ? 0 : (currentPage - 1) * pageSize;
 
         if (!isExactQuery) {
           params.set("pageSize", String(pageSize));
-          if (cursor) params.set("cursor", cursor);
+          params.set("offset", String(offset));
         }
 
         if (queryParams.name) params.set("name", queryParams.name);
@@ -91,10 +89,6 @@ export default function CountriesPage() {
 
         setCountries(json.countries);
         setTotal(json.total);
-
-        if (!isExactQuery && json.hasNextPage) {
-          cursors.current[currentPage + 1] = json.nextCursor;
-        }
       } catch (err) {
         setError("Could not load country data.");
       } finally {
@@ -113,7 +107,6 @@ export default function CountriesPage() {
   const handlePageSizeChange = (value: number) => {
     setPageSize(value);
     setCurrentPage(1);
-    cursors.current = { 1: null };
   };
 
   return (
@@ -219,7 +212,7 @@ export default function CountriesPage() {
           <PageSizeSelector
             pageSize={pageSize}
             pageSizes={PAGE_SIZES}
-            disabled={isExactQuery || loading}
+            disabled={loading}
             onChange={handlePageSizeChange}
           />
           <div>
@@ -227,7 +220,7 @@ export default function CountriesPage() {
               currentPage={currentPage}
               totalPages={totalPages}
               onPageChange={goToPage}
-              disabled={isExactQuery || loading}
+              disabled={loading}
             />
           </div>
         </div>

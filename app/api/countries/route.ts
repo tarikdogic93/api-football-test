@@ -6,7 +6,7 @@ import { getCountries } from "@/features/countries/services";
 export async function GET(req: NextRequest) {
   try {
     const pageSizeParam = req.nextUrl.searchParams.get("pageSize");
-    const cursor = req.nextUrl.searchParams.get("cursor");
+    const offsetParam = req.nextUrl.searchParams.get("offset");
     const nameQuery = req.nextUrl.searchParams.get("name")?.toLowerCase();
     const codeQuery = req.nextUrl.searchParams.get("code")?.toLowerCase();
     const searchQuery = req.nextUrl.searchParams.get("search")?.toLowerCase();
@@ -22,9 +22,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
     const result = await getCountries({
       pageSize,
-      cursor,
+      offset,
       nameQuery,
       codeQuery,
       searchQuery,

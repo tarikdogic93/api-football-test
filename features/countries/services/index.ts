@@ -3,17 +3,12 @@ import {
   doc,
   getDocs,
   query,
-  orderBy,
   limit,
-  startAfter,
   writeBatch,
-  getCountFromServer,
-  QueryDocumentSnapshot,
-  where,
-  QueryConstraint,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import { meiliClient } from "@/lib/meilisearch";
 import { ONE_DAY } from "@/lib/constants";
 import {
   CountryType,
@@ -23,6 +18,37 @@ import {
 
 const COUNTRIES_COLLECTION = collection(db, "countries");
 const WORLD_DOCUMENT_ID = "WORLD";
+const MEILI_INDEX = meiliClient.index("countries");
+
+async function ensureCountriesIndex() {
+  try {
+    await meiliClient.createIndex("countries", { primaryKey: "code" });
+  } catch (err: any) {
+    if (err.errorCode !== "index_already_exists") {
+      throw err;
+    }
+  }
+
+  const index = meiliClient.index("countries");
+
+  await index.updateFilterableAttributes(["code", "name"]);
+
+  const maxAttempts = 10;
+  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    try {
+      await meiliClient.getIndex("countries");
+      return;
+    } catch {
+      await delay(200);
+    }
+  }
+
+  throw new Error(
+    "MeiliSearch index 'countries' not ready after several attempts."
+  );
+}
 
 export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
   const response = await fetch("https://v3.football.api-sports.io/countries", {
@@ -36,11 +62,9 @@ export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
   return json.response as CountryType[];
 }
 
-let totalCountCache: number | null = null;
-
 export async function getCountries({
   pageSize,
-  cursor,
+  offset,
   nameQuery,
   codeQuery,
   searchQuery,
@@ -67,112 +91,38 @@ export async function getCountries({
       const documentId = country.code ?? WORLD_DOCUMENT_ID;
       batch.set(doc(COUNTRIES_COLLECTION, documentId), {
         ...country,
-        nameLower: country.name.toLowerCase(),
-        ...(country.code ? { codeLower: country.code.toLowerCase() } : {}),
         updatedAt: now,
       });
     }
-
     await batch.commit();
-  }
 
-  if (searchQuery) {
-    const snapshot = await getDocs(COUNTRIES_COLLECTION);
-    const allCountries = snapshot.docs.map((doc) => doc.data() as CountryType);
+    await ensureCountriesIndex();
 
-    const filtered = allCountries.filter((country) =>
-      country.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const start = cursor ? Number(cursor) : 0;
-    const end = start + pageSize;
-
-    return {
-      total: filtered.length,
-      countries: filtered.slice(start, end),
-      nextCursor: end < filtered.length ? String(end) : null,
-      hasNextPage: end < filtered.length,
-    };
-  }
-
-  if (totalCountCache === null) {
-    const totalSnapshot = await getCountFromServer(COUNTRIES_COLLECTION);
-    totalCountCache = totalSnapshot.data().count;
-  }
-
-  let q;
-  let cursorDoc: QueryDocumentSnapshot | null = null;
-
-  if (nameQuery) {
-    q = query(
-      COUNTRIES_COLLECTION,
-      where("nameLower", "==", nameQuery.toLowerCase())
-    );
-  } else if (codeQuery) {
-    q = query(
-      COUNTRIES_COLLECTION,
-      where("codeLower", "==", codeQuery.toLowerCase())
+    await MEILI_INDEX.addDocuments(
+      fetchedCountries.map((country) => ({
+        ...country,
+        code: country.code ?? WORLD_DOCUMENT_ID,
+      }))
     );
   } else {
-    const constraints: QueryConstraint[] = [];
-
-    constraints.push(orderBy("name"));
-
-    if (cursor) {
-      const cursorSnapshot = await getDocs(
-        query(
-          COUNTRIES_COLLECTION,
-          orderBy("name"),
-          where("name", "==", cursor),
-          limit(1)
-        )
-      );
-
-      if (!cursorSnapshot.empty) {
-        cursorDoc = cursorSnapshot.docs[0];
-        constraints.push(startAfter(cursorDoc));
-      }
-    }
-
-    constraints.push(limit(pageSize + 1));
-
-    q = query(COUNTRIES_COLLECTION, ...constraints);
+    await ensureCountriesIndex();
   }
 
-  const snapshot = await getDocs(q);
+  let meiliQuery = searchQuery ?? "";
+  const filters: string[] = [];
 
-  const hasNextPage = snapshot.docs.length > pageSize;
+  if (nameQuery) filters.push(`name = "${nameQuery}"`);
+  if (codeQuery) filters.push(`code = "${codeQuery}"`);
 
-  const countries = snapshot.docs
-    .slice(0, pageSize)
-    .map((doc) => doc.data() as CountryType);
-
-  const lastDoc =
-    snapshot.docs[Math.min(pageSize - 1, snapshot.docs.length - 1)];
-  const nextCursor =
-    lastDoc && !nameQuery && !codeQuery && hasNextPage
-      ? lastDoc.get("name")
-      : null;
-
-  let total = totalCountCache;
-  if (nameQuery || codeQuery) {
-    const constraints: QueryConstraint[] = [];
-
-    if (nameQuery) {
-      constraints.push(where("nameLower", "==", nameQuery.toLowerCase()));
-    } else if (codeQuery) {
-      constraints.push(where("codeLower", "==", codeQuery.toLowerCase()));
-    }
-
-    const countQuery = query(COUNTRIES_COLLECTION, ...constraints);
-    const countSnapshot = await getCountFromServer(countQuery);
-    total = countSnapshot.data().count;
-  }
+  const result = await MEILI_INDEX.search<CountryType>(meiliQuery, {
+    limit: pageSize,
+    offset,
+    filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+  });
 
   return {
-    total,
-    countries,
-    nextCursor,
-    hasNextPage,
+    countries: result.hits,
+    total: result.estimatedTotalHits ?? result.hits.length,
+    offset: offset + result.hits.length,
   };
 }
