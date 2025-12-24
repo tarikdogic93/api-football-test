@@ -29,9 +29,14 @@ async function ensureCountriesIndex() {
     }
   }
 
-  const index = meiliClient.index("countries");
+  const searchableTask = await MEILI_INDEX.updateSearchableAttributes(["name"]);
+  await meiliClient.tasks.waitForTask(searchableTask.taskUid);
 
-  await index.updateFilterableAttributes(["code", "name"]);
+  const filterableTask = await MEILI_INDEX.updateFilterableAttributes([
+    "code",
+    "name",
+  ]);
+  await meiliClient.tasks.waitForTask(filterableTask.taskUid);
 
   const maxAttempts = 10;
   const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
@@ -46,7 +51,7 @@ async function ensureCountriesIndex() {
   }
 
   throw new Error(
-    "MeiliSearch index 'countries' not ready after several attempts."
+    "MeiliSearch index 'countries' not ready after several attempts"
   );
 }
 
@@ -98,12 +103,13 @@ export async function getCountries({
 
     await ensureCountriesIndex();
 
-    await MEILI_INDEX.addDocuments(
+    const task = await MEILI_INDEX.addDocuments(
       fetchedCountries.map((country) => ({
         ...country,
         code: country.code ?? WORLD_DOCUMENT_ID,
       }))
     );
+    await meiliClient.tasks.waitForTask(task.taskUid);
   } else {
     await ensureCountriesIndex();
   }
