@@ -1,12 +1,15 @@
 import Image from "next/image";
 
-import { VenueType } from "@/features/venues/types";
+import { VenueProps } from "@/features/venues/types";
 
-type VenueProps = { venue: VenueType };
-
-export default function Venue({ venue }: VenueProps) {
-  const { name, city, country, capacity, surface, image } = venue;
-
+export default function Venue({
+  name,
+  city,
+  country,
+  capacity,
+  surface,
+  image,
+}: VenueProps) {
   const displayName = name ?? "Unnamed venue";
 
   return (

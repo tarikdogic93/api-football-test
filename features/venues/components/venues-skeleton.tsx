@@ -1,9 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { VenuesSkeletonProps } from "@/features/venues/types";
 
-export default function VenuesSkeleton() {
+export default function VenuesSkeleton({ pageSize }: VenuesSkeletonProps) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {Array.from({ length: 8 }).map((_, i) => (
+      {Array.from({ length: pageSize }).map((_, i) => (
         <div
           key={i}
           className="p-4 shadow rounded flex flex-col items-center gap-1"

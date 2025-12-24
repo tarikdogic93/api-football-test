@@ -1,14 +1,65 @@
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  collection,
+  doc,
+  getDocs,
+  limit,
+  query,
+  writeBatch,
+  getDoc,
+  where,
+} from "firebase/firestore";
+
 import { db } from "@/lib/firebase";
-import { VenueType } from "@/features/venues/types";
+import { meiliClient } from "@/lib/meilisearch";
+import { ONE_DAY } from "@/lib/constants";
+import {
+  GetVenuesParams,
+  VenuesAPIResponse,
+  VenueType,
+} from "@/features/venues/types";
 
-const ONE_DAY = 24 * 60 * 60 * 1000;
-const REF = doc(db, "meta", "venues");
+const VENUES_COLLECTION = collection(db, "venues");
+const MEILI_INDEX = meiliClient.index("venues");
 
-export async function fetchVenuesFromAPI(params: Record<string, string>) {
-  const queryString = new URLSearchParams(params).toString();
+async function ensureVenuesIndex() {
+  try {
+    await meiliClient.createIndex("venues", { primaryKey: "id" });
+  } catch (err: any) {
+    if (err.errorCode !== "index_already_exists") throw err;
+  }
+
+  const searchableTask = await MEILI_INDEX.updateSearchableAttributes([
+    "name",
+    "city",
+    "country",
+  ]);
+  await meiliClient.tasks.waitForTask(searchableTask.taskUid);
+
+  const filterableTask = await MEILI_INDEX.updateFilterableAttributes([
+    "id",
+    "name",
+    "city",
+    "country",
+  ]);
+  await meiliClient.tasks.waitForTask(filterableTask.taskUid);
+}
+
+export async function fetchVenuesFromAPI(query: {
+  idQuery?: string;
+  nameQuery?: string;
+  cityQuery?: string;
+  countryQuery?: string;
+  searchQuery?: string;
+}) {
+  const params = new URLSearchParams();
+  if (query.idQuery) params.set("id", query.idQuery);
+  if (query.nameQuery) params.set("name", query.nameQuery);
+  if (query.cityQuery) params.set("city", query.cityQuery);
+  if (query.countryQuery) params.set("country", query.countryQuery);
+  if (query.searchQuery) params.set("search", query.searchQuery);
+
   const response = await fetch(
-    `https://v3.football.api-sports.io/venues?${queryString}`,
+    `https://v3.football.api-sports.io/venues?${params.toString()}`,
     { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! } }
   );
 
@@ -18,58 +69,99 @@ export async function fetchVenuesFromAPI(params: Record<string, string>) {
   return json.response as VenueType[];
 }
 
-export async function getVenue(
-  params: Record<string, string>
-): Promise<VenueType[]> {
-  const snapshot = await getDoc(REF);
-  const cached = snapshot.exists() ? snapshot.data()?.venues || {} : {};
+export async function getVenues({
+  pageSize,
+  offset,
+  idQuery,
+  nameQuery,
+  cityQuery,
+  countryQuery,
+  searchQuery,
+}: GetVenuesParams): Promise<VenuesAPIResponse> {
   const now = Date.now();
+  let shouldFetchAPI = false;
 
-  const [key] = Object.keys(params);
-  const paramValue = params[key].toLowerCase();
+  if (cityQuery || countryQuery || searchQuery) shouldFetchAPI = true;
 
-  const matchedCachedVenues: VenueType[] = [];
-  let hasStale = false;
-
-  for (const venueId in cached) {
-    const venue = cached[venueId];
-
-    const fieldValue = (
-      venue as Record<string, string | number | null | undefined>
-    )[key];
-    if (!fieldValue) continue;
-
-    const venueValue = fieldValue.toString().toLowerCase();
-    const isMatch = venueValue === paramValue;
-
-    if (isMatch) {
-      matchedCachedVenues.push(venue);
-      if (now - venue.updatedAt > ONE_DAY) hasStale = true;
+  if (!shouldFetchAPI && idQuery) {
+    const venueDoc = await getDoc(doc(VENUES_COLLECTION, String(idQuery)));
+    if (!venueDoc.exists()) shouldFetchAPI = true;
+    else {
+      const data = venueDoc.data() as VenueType & { updatedAt?: number };
+      if (!data.updatedAt || now - data.updatedAt > ONE_DAY)
+        shouldFetchAPI = true;
     }
   }
 
-  const broaderSearchKeys = ["city", "country", "search"];
-  const isBroaderSearch = broaderSearchKeys.includes(key);
-
-  const needApiCall =
-    isBroaderSearch || hasStale || matchedCachedVenues.length === 0;
-
-  if (!needApiCall) return matchedCachedVenues;
-
-  const venues = await fetchVenuesFromAPI(params);
-
-  if (venues.length > 0) {
-    const updates: Record<string, VenueType & { updatedAt: number }> = {};
-
-    for (const venue of venues) {
-      updates[venue.id] = {
-        ...venue,
-        updatedAt: now,
-      };
+  if (!shouldFetchAPI && nameQuery) {
+    const lowerNameQuery = nameQuery.toLowerCase();
+    const snapshot = await getDocs(
+      query(
+        VENUES_COLLECTION,
+        where("nameLower", "==", lowerNameQuery),
+        limit(1)
+      )
+    );
+    if (
+      snapshot.empty ||
+      !snapshot.docs[0].data().updatedAt ||
+      now - snapshot.docs[0].data().updatedAt > ONE_DAY
+    ) {
+      shouldFetchAPI = true;
     }
-
-    await setDoc(REF, { venues: updates }, { merge: true });
   }
 
-  return venues;
+  if (!shouldFetchAPI) {
+    const snapshotCheck = await getDocs(query(VENUES_COLLECTION, limit(1)));
+    if (snapshotCheck.empty) shouldFetchAPI = true;
+  }
+
+  let fetchedVenues: VenueType[] = [];
+
+  if (shouldFetchAPI) {
+    fetchedVenues = await fetchVenuesFromAPI({
+      idQuery,
+      nameQuery,
+      cityQuery,
+      countryQuery,
+      searchQuery,
+    });
+
+    if (fetchedVenues.length > 0) {
+      const batch = writeBatch(db);
+      for (const venue of fetchedVenues) {
+        batch.set(doc(VENUES_COLLECTION, String(venue.id)), {
+          ...venue,
+          nameLower: venue.name?.toLowerCase() || null,
+          updatedAt: now,
+        });
+      }
+      await batch.commit();
+
+      await ensureVenuesIndex();
+
+      const task = await MEILI_INDEX.addDocuments(fetchedVenues);
+      await meiliClient.tasks.waitForTask(task.taskUid);
+    }
+  } else {
+    await ensureVenuesIndex();
+  }
+
+  const filters: string[] = [];
+  if (idQuery) filters.push(`id = ${idQuery}`);
+  if (nameQuery) filters.push(`name = "${nameQuery}"`);
+  if (cityQuery) filters.push(`city = "${cityQuery}"`);
+  if (countryQuery) filters.push(`country = "${countryQuery}"`);
+
+  const result = await MEILI_INDEX.search<VenueType>(searchQuery || "", {
+    limit: pageSize,
+    offset,
+    filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+  });
+
+  return {
+    venues: result.hits,
+    total: result.estimatedTotalHits ?? result.hits.length,
+    offset: offset + result.hits.length,
+  };
 }
