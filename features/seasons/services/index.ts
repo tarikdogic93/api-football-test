@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
+import { ONE_DAY } from "@/lib/constants";
 import {
   GetSeasonsParams,
   SeasonsAPIResponse,
@@ -47,14 +48,31 @@ export async function getSeasons({
   pageSize,
   cursor,
 }: GetSeasonsParams): Promise<SeasonsAPIResponse> {
+  const now = Date.now();
+
   const snapshotCheck = await getDocs(query(SEASONS_COLLECTION, limit(1)));
+  let shouldFetchAPI = false;
+
   if (snapshotCheck.empty) {
+    shouldFetchAPI = true;
+  } else {
+    const firstDoc = snapshotCheck.docs[0].data() as SeasonType & {
+      updatedAt?: number;
+    };
+
+    shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
+  }
+
+  if (shouldFetchAPI) {
     const fetchedSeasons = await fetchSeasonsFromAPI();
     const batch = writeBatch(db);
 
     for (const season of fetchedSeasons) {
       const documentId = generateSafeDocumentId(season);
-      const seasonData: SeasonType = { year: season };
+      const seasonData: SeasonType & { updatedAt: number } = {
+        year: season,
+        updatedAt: now,
+      };
       batch.set(doc(SEASONS_COLLECTION, documentId), seasonData);
     }
 
