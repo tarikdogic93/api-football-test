@@ -38,7 +38,7 @@ export default function PageSizeSelector({
         onValueChange={handleChange}
         disabled={disabled}
       >
-        <SelectTrigger id="pageSize" className="w-[120px] cursor-pointer">
+        <SelectTrigger id="pageSize" className="w-30 cursor-pointer">
           <SelectValue placeholder="Page size" />
         </SelectTrigger>
         <SelectContent>
