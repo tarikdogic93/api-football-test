@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
 import PageSizeSelector from "@/components/page-size-selector";
@@ -17,8 +17,6 @@ export default function TimezonesPage() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const cursors = useRef<{ [key: number]: string | null }>({ 1: null });
-
   const totalPages = Math.ceil(total / pageSize);
 
   useEffect(() => {
@@ -27,13 +25,11 @@ export default function TimezonesPage() {
       setError("");
 
       try {
-        const cursor = cursors.current[currentPage] ?? null;
-
+        const offset = (currentPage - 1) * pageSize;
         const params = new URLSearchParams({
           pageSize: String(pageSize),
+          offset: String(offset),
         });
-
-        if (cursor) params.set("cursor", cursor);
 
         const res = await fetch(`/api/timezones?${params.toString()}`);
         if (!res.ok) throw new Error("Failed to fetch timezones");
@@ -42,10 +38,6 @@ export default function TimezonesPage() {
 
         setTimezones(json.timezones);
         setTotal(json.total);
-
-        if (json.hasNextPage) {
-          cursors.current[currentPage + 1] = json.nextCursor;
-        }
       } catch (err) {
         setError("Could not load timezones.");
       } finally {
@@ -64,7 +56,6 @@ export default function TimezonesPage() {
   const handlePageSizeChange = (value: number) => {
     setPageSize(value);
     setCurrentPage(1);
-    cursors.current = { 1: null };
   };
 
   return (

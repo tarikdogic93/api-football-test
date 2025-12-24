@@ -6,7 +6,7 @@ import { getTimezones } from "@/features/timezones/services";
 export async function GET(req: NextRequest) {
   try {
     const pageSizeParam = req.nextUrl.searchParams.get("pageSize");
-    const cursor = req.nextUrl.searchParams.get("cursor");
+    const offsetParam = req.nextUrl.searchParams.get("offset");
 
     const pageSize = pageSizeParam
       ? parseInt(pageSizeParam, 10)
@@ -19,9 +19,11 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
     const result = await getTimezones({
       pageSize,
-      cursor,
+      offset,
     });
 
     return NextResponse.json(result);

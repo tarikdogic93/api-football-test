@@ -14,12 +14,11 @@ export type TimezoneProps = TimezoneType;
 
 export type GetTimezonesParams = {
   pageSize: number;
-  cursor: string | null;
+  offset: number;
 };
 
 export type TimezonesAPIResponse = {
-  total: number;
   timezones: TimezoneType[];
-  nextCursor: string | null;
-  hasNextPage: boolean;
+  total: number;
+  offset: number;
 };
