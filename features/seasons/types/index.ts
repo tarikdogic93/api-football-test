@@ -12,12 +12,11 @@ export type SeasonsListProps = {
 
 export type GetSeasonsParams = {
   pageSize: number;
-  cursor: string | null;
+  offset: number;
 };
 
 export type SeasonsAPIResponse = {
-  total: number;
   seasons: SeasonType[];
-  nextCursor: string | null;
-  hasNextPage: boolean;
+  total: number;
+  offset: number;
 };

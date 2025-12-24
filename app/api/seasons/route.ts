@@ -6,7 +6,7 @@ import { getSeasons } from "@/features/seasons/services";
 export async function GET(req: NextRequest) {
   try {
     const pageSizeParam = req.nextUrl.searchParams.get("pageSize");
-    const cursor = req.nextUrl.searchParams.get("cursor");
+    const offsetParam = req.nextUrl.searchParams.get("offset");
 
     const pageSize = pageSizeParam
       ? parseInt(pageSizeParam, 10)
@@ -19,7 +19,12 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const result = await getSeasons({ pageSize, cursor });
+    const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
+
+    const result = await getSeasons({
+      pageSize,
+      offset,
+    });
 
     return NextResponse.json(result);
   } catch (error) {
