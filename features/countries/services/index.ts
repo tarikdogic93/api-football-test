@@ -37,22 +37,6 @@ async function ensureCountriesIndex() {
     "name",
   ]);
   await meiliClient.tasks.waitForTask(filterableTask.taskUid);
-
-  const maxAttempts = 10;
-  const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      await meiliClient.getIndex("countries");
-      return;
-    } catch {
-      await delay(200);
-    }
-  }
-
-  throw new Error(
-    "MeiliSearch index 'countries' not ready after several attempts"
-  );
 }
 
 export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
