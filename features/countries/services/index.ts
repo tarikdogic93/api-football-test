@@ -98,17 +98,26 @@ export async function getCountries({
     await ensureCountriesIndex();
   }
 
-  let meiliQuery = searchQuery ?? "";
   const filters: string[] = [];
 
   if (nameQuery) filters.push(`name = "${nameQuery}"`);
   if (codeQuery) filters.push(`code = "${codeQuery}"`);
 
-  const result = await MEILI_INDEX.search<CountryType>(meiliQuery, {
-    limit: pageSize,
-    offset,
-    filter: filters.length > 0 ? filters.join(" AND ") : undefined,
-  });
+  let result;
+  if (searchQuery) {
+    filters.push(`name CONTAINS "${searchQuery}"`);
+    result = await MEILI_INDEX.search<CountryType>("", {
+      limit: pageSize,
+      offset,
+      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+    });
+  } else {
+    result = await MEILI_INDEX.search<CountryType>("", {
+      limit: pageSize,
+      offset,
+      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+    });
+  }
 
   return {
     countries: result.hits,
