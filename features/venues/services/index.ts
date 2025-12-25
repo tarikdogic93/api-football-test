@@ -160,11 +160,24 @@ export async function getVenues({
   if (cityQuery) filters.push(`city = "${cityQuery}"`);
   if (countryQuery) filters.push(`country = "${countryQuery}"`);
 
-  const result = await MEILI_INDEX.search<VenueType>(searchQuery || "", {
-    limit: pageSize,
-    offset,
-    filter: filters.length > 0 ? filters.join(" AND ") : undefined,
-  });
+  let result;
+  if (searchQuery) {
+    filters.push(
+      `name CONTAINS "${searchQuery}" OR city CONTAINS "${searchQuery}" OR country CONTAINS "${searchQuery}"`
+    );
+
+    result = await MEILI_INDEX.search<VenueType>("", {
+      limit: pageSize,
+      offset,
+      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+    });
+  } else {
+    result = await MEILI_INDEX.search<VenueType>("", {
+      limit: pageSize,
+      offset,
+      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+    });
+  }
 
   return {
     venues: result.hits,
