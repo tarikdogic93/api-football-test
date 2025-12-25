@@ -33,13 +33,7 @@ export default function VenuesPage() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const [queryParams, setQueryParams] = useState<{
-    id: string;
-    name: string;
-    city: string;
-    country: string;
-    search: string;
-  }>({
+  const [queryParams, setQueryParams] = useState({
     id: "",
     name: "",
     city: "",
@@ -69,12 +63,6 @@ export default function VenuesPage() {
     setCurrentPage(1);
   };
 
-  const isExactQuery =
-    !!queryParams.id ||
-    !!queryParams.name ||
-    !!queryParams.city ||
-    !!queryParams.country;
-
   const isQueryEmpty =
     !queryParams.id &&
     !queryParams.name &&
@@ -93,12 +81,11 @@ export default function VenuesPage() {
 
       try {
         const params = new URLSearchParams();
-        const offset = isExactQuery ? 0 : (currentPage - 1) * pageSize;
 
-        if (!isExactQuery) {
-          params.set("pageSize", String(pageSize));
-          params.set("offset", String(offset));
-        }
+        const offset = (currentPage - 1) * pageSize;
+
+        params.set("pageSize", String(pageSize));
+        params.set("offset", String(offset));
 
         if (queryParams.id) params.set("id", queryParams.id);
         if (queryParams.name) params.set("name", queryParams.name);
@@ -113,7 +100,7 @@ export default function VenuesPage() {
 
         setVenues(json.venues);
         setTotal(json.total ?? 0);
-      } catch (err) {
+      } catch {
         setError("Could not load venue data.");
       } finally {
         setLoading(false);
@@ -121,7 +108,7 @@ export default function VenuesPage() {
     }
 
     load();
-  }, [currentPage, pageSize, queryParams, isExactQuery, isQueryEmpty]);
+  }, [currentPage, pageSize, queryParams, isQueryEmpty]);
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -250,7 +237,7 @@ export default function VenuesPage() {
           <VenuesList venues={venues} />
         )}
 
-        {!isQueryEmpty && (
+        {!isQueryEmpty && venues.length > 0 && (
           <div className="flex items-center justify-between mt-4">
             <PageSizeSelector
               pageSize={pageSize}
