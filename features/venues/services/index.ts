@@ -21,6 +21,24 @@ import {
 const VENUES_COLLECTION = collection(db, "venues");
 const MEILI_INDEX = meiliClient.index("venues");
 
+let lastFetchedQuerySignature: string | null = null;
+
+function buildVenuesQuerySignature(params: {
+  idQuery?: string;
+  nameQuery?: string;
+  cityQuery?: string;
+  countryQuery?: string;
+  searchQuery?: string;
+}) {
+  return JSON.stringify({
+    idQuery: params.idQuery ?? null,
+    nameQuery: params.nameQuery ?? null,
+    cityQuery: params.cityQuery ?? null,
+    countryQuery: params.countryQuery ?? null,
+    searchQuery: params.searchQuery ?? null,
+  });
+}
+
 async function ensureVenuesIndex() {
   try {
     await meiliClient.createIndex("venues", { primaryKey: "id" });
@@ -79,9 +97,16 @@ export async function getVenues({
   searchQuery,
 }: GetVenuesParams): Promise<VenuesAPIResponse> {
   const now = Date.now();
-  let shouldFetchAPI = false;
 
-  if (cityQuery || countryQuery || searchQuery) shouldFetchAPI = true;
+  const currentQuerySignature = buildVenuesQuerySignature({
+    idQuery,
+    nameQuery,
+    cityQuery,
+    countryQuery,
+    searchQuery,
+  });
+
+  let shouldFetchAPI = lastFetchedQuerySignature !== currentQuerySignature;
 
   if (!shouldFetchAPI && idQuery) {
     const venueDoc = await getDoc(doc(VENUES_COLLECTION, String(idQuery)));
@@ -142,6 +167,8 @@ export async function getVenues({
 
       const task = await MEILI_INDEX.addDocuments(fetchedVenues);
       await meiliClient.tasks.waitForTask(task.taskUid);
+
+      lastFetchedQuerySignature = currentQuerySignature;
     }
   } else {
     await ensureVenuesIndex();
