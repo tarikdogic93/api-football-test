@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient } from "@/lib/meilisearch";
+import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
 import { ONE_DAY } from "@/lib/constants";
 import {
   CountryType,
@@ -19,25 +19,6 @@ import {
 const COUNTRIES_COLLECTION = collection(db, "countries");
 const WORLD_DOCUMENT_ID = "WORLD";
 const MEILI_INDEX = meiliClient.index("countries");
-
-async function ensureCountriesIndex() {
-  try {
-    await meiliClient.createIndex("countries", { primaryKey: "code" });
-  } catch (err: any) {
-    if (err.errorCode !== "index_already_exists") {
-      throw err;
-    }
-  }
-
-  const searchableTask = await MEILI_INDEX.updateSearchableAttributes(["name"]);
-  await meiliClient.tasks.waitForTask(searchableTask.taskUid);
-
-  const filterableTask = await MEILI_INDEX.updateFilterableAttributes([
-    "code",
-    "name",
-  ]);
-  await meiliClient.tasks.waitForTask(filterableTask.taskUid);
-}
 
 export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
   const response = await fetch("https://v3.football.api-sports.io/countries", {
@@ -59,6 +40,13 @@ export async function getCountries({
   searchQuery,
 }: GetCountriesParams): Promise<CountriesAPIResponse> {
   const now = Date.now();
+
+  await ensureIndexOnce({
+    indexName: "countries",
+    primaryKey: "code",
+    searchableAttributes: ["name"],
+    filterableAttributes: ["code", "name"],
+  });
 
   const snapshotCheck = await getDocs(query(COUNTRIES_COLLECTION, limit(1)));
   let shouldFetchAPI = false;
@@ -85,8 +73,6 @@ export async function getCountries({
     }
     await batch.commit();
 
-    await ensureCountriesIndex();
-
     const task = await MEILI_INDEX.addDocuments(
       fetchedCountries.map((country) => ({
         ...country,
@@ -94,8 +80,6 @@ export async function getCountries({
       }))
     );
     await meiliClient.tasks.waitForTask(task.taskUid);
-  } else {
-    await ensureCountriesIndex();
   }
 
   const filters: string[] = [];

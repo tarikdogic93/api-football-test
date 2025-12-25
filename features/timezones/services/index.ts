@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient } from "@/lib/meilisearch";
+import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
 import {
   GetTimezonesParams,
   TimezonesAPIResponse,
@@ -34,21 +34,16 @@ export async function fetchTimezonesFromAPI(): Promise<string[]> {
   return json.response as string[];
 }
 
-async function ensureTimezonesIndex() {
-  try {
-    await meiliClient.createIndex("timezones", { primaryKey: "id" });
-  } catch (err: any) {
-    if (err.errorCode !== "index_already_exists") throw err;
-  }
-
-  const searchableTask = await MEILI_INDEX.updateSearchableAttributes(["name"]);
-  await meiliClient.tasks.waitForTask(searchableTask.taskUid);
-}
-
 export async function getTimezones({
   pageSize,
   offset,
 }: GetTimezonesParams): Promise<TimezonesAPIResponse> {
+  await ensureIndexOnce({
+    indexName: "timezones",
+    primaryKey: "id",
+    searchableAttributes: ["name"],
+  });
+
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
   if (snapshotCheck.empty) {
     const fetchedTimezones = await fetchTimezonesFromAPI();
@@ -61,8 +56,6 @@ export async function getTimezones({
 
     await batch.commit();
 
-    await ensureTimezonesIndex();
-
     const task = await MEILI_INDEX.addDocuments(
       fetchedTimezones.map((timezone) => ({
         id: generateSafeDocumentId(timezone),
@@ -71,8 +64,6 @@ export async function getTimezones({
     );
 
     await meiliClient.tasks.waitForTask(task.taskUid);
-  } else {
-    await ensureTimezonesIndex();
   }
 
   const result = await MEILI_INDEX.search<TimezoneType>("", {

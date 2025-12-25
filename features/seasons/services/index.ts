@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient } from "@/lib/meilisearch";
+import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
 import { ONE_DAY } from "@/lib/constants";
 import {
   GetSeasonsParams,
@@ -34,22 +34,18 @@ export async function fetchSeasonsFromAPI(): Promise<number[]> {
   return json.response as number[];
 }
 
-async function ensureSeasonsIndex() {
-  try {
-    await meiliClient.createIndex("seasons", { primaryKey: "year" });
-  } catch (err: any) {
-    if (err.errorCode !== "index_already_exists") throw err;
-  }
-
-  const searchableTask = await MEILI_INDEX.updateSearchableAttributes(["year"]);
-  await meiliClient.tasks.waitForTask(searchableTask.taskUid);
-}
-
 export async function getSeasons({
   pageSize,
   offset,
 }: GetSeasonsParams): Promise<SeasonsAPIResponse> {
   const now = Date.now();
+
+  await ensureIndexOnce({
+    indexName: "seasons",
+    primaryKey: "year",
+    searchableAttributes: ["year"],
+  });
+
   const snapshotCheck = await getDocs(query(SEASONS_COLLECTION, limit(1)));
   let shouldFetchAPI = false;
 
@@ -76,17 +72,10 @@ export async function getSeasons({
 
     await batch.commit();
 
-    await ensureSeasonsIndex();
-
     const task = await MEILI_INDEX.addDocuments(
-      fetchedSeasons.map((year) => ({
-        year,
-      }))
+      fetchedSeasons.map((season) => ({ year: season }))
     );
-
     await meiliClient.tasks.waitForTask(task.taskUid);
-  } else {
-    await ensureSeasonsIndex();
   }
 
   const result = await MEILI_INDEX.search<SeasonType>("", {

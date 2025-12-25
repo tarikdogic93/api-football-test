@@ -10,7 +10,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient } from "@/lib/meilisearch";
+import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
 import { ONE_DAY } from "@/lib/constants";
 import {
   GetVenuesParams,
@@ -37,29 +37,6 @@ function buildVenuesQuerySignature(params: {
     countryQuery: params.countryQuery ?? null,
     searchQuery: params.searchQuery ?? null,
   });
-}
-
-async function ensureVenuesIndex() {
-  try {
-    await meiliClient.createIndex("venues", { primaryKey: "id" });
-  } catch (err: any) {
-    if (err.errorCode !== "index_already_exists") throw err;
-  }
-
-  const searchableTask = await MEILI_INDEX.updateSearchableAttributes([
-    "name",
-    "city",
-    "country",
-  ]);
-  await meiliClient.tasks.waitForTask(searchableTask.taskUid);
-
-  const filterableTask = await MEILI_INDEX.updateFilterableAttributes([
-    "id",
-    "name",
-    "city",
-    "country",
-  ]);
-  await meiliClient.tasks.waitForTask(filterableTask.taskUid);
 }
 
 export async function fetchVenuesFromAPI(query: {
@@ -97,6 +74,13 @@ export async function getVenues({
   searchQuery,
 }: GetVenuesParams): Promise<VenuesAPIResponse> {
   const now = Date.now();
+
+  await ensureIndexOnce({
+    indexName: "venues",
+    primaryKey: "id",
+    searchableAttributes: ["name", "city", "country"],
+    filterableAttributes: ["id", "name", "city", "country"],
+  });
 
   const currentQuerySignature = buildVenuesQuerySignature({
     idQuery,
@@ -163,15 +147,11 @@ export async function getVenues({
       }
       await batch.commit();
 
-      await ensureVenuesIndex();
-
       const task = await MEILI_INDEX.addDocuments(fetchedVenues);
       await meiliClient.tasks.waitForTask(task.taskUid);
 
       lastFetchedQuerySignature = currentQuerySignature;
     }
-  } else {
-    await ensureVenuesIndex();
   }
 
   const filters: string[] = [];
