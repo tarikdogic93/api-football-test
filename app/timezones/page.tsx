@@ -76,23 +76,24 @@ export default function TimezonesPage() {
         ) : (
           <TimezonesList timezones={timezones} />
         )}
-
-        <div className="flex items-center justify-between">
-          <PageSizeSelector
-            pageSize={pageSize}
-            pageSizes={PAGE_SIZES}
-            disabled={loading}
-            onChange={handlePageSizeChange}
-          />
-          <div>
-            <MiniPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
+        {timezones.length > 0 && (
+          <div className="flex items-center justify-between">
+            <PageSizeSelector
+              pageSize={pageSize}
+              pageSizes={PAGE_SIZES}
               disabled={loading}
+              onChange={handlePageSizeChange}
             />
+            <div>
+              <MiniPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                disabled={loading}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
