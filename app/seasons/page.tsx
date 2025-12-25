@@ -76,23 +76,24 @@ export default function SeasonsPage() {
         ) : (
           <SeasonsList seasons={seasons} />
         )}
-
-        <div className="flex items-center justify-between">
-          <PageSizeSelector
-            pageSize={pageSize}
-            pageSizes={PAGE_SIZES}
-            disabled={loading}
-            onChange={handlePageSizeChange}
-          />
-          <div>
-            <MiniPagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
+        {seasons.length > 0 && (
+          <div className="flex items-center justify-between">
+            <PageSizeSelector
+              pageSize={pageSize}
+              pageSizes={PAGE_SIZES}
               disabled={loading}
+              onChange={handlePageSizeChange}
             />
+            <div>
+              <MiniPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={goToPage}
+                disabled={loading}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );
