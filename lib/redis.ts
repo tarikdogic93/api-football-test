@@ -33,7 +33,9 @@ export async function ensureIndexOnce(params: {
 
       try {
         const schemaFlattened = schema.flatMap(([field, type, option]) =>
-          option ? [`$.${field}`, type, option] : [`$.${field}`, type]
+          option
+            ? [`$.${field}`, "AS", field, type, option]
+            : [`$.${field}`, "AS", field, type]
         );
 
         await redis.sendCommand([
