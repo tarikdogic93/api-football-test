@@ -7,8 +7,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "docker:dev": "docker compose up",
-    "docker:clean": "docker compose down -v"
+    "docker:dev:build": "docker-compose -f docker-compose.dev.yml build",
+    "docker:dev:up": "docker-compose -f docker-compose.dev.yml up",
+    "docker:dev:down": "docker-compose -f docker-compose.dev.yml down",
+    "docker:dev:clean": "docker-compose -f docker-compose.dev.yml down -v",
+    "docker:prod:build": "docker-compose -f docker-compose.prod.yml build",
+    "docker:prod:up": "docker-compose -f docker-compose.prod.yml up",
+    "docker:prod:down": "docker-compose -f docker-compose.prod.yml down",
+    "docker:prod:clean": "docker-compose -f docker-compose.prod.yml down -v",
+    "docker:clean:all": "docker-compose -f docker-compose.dev.yml down -v && docker-compose -f docker-compose.prod.yml down -v"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -22,11 +29,11 @@
     "clsx": "^2.1.1",
     "firebase": "^12.7.0",
     "lucide-react": "^0.562.0",
-    "meilisearch": "^0.54.0",
     "next": "^16.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.69.0",
+    "redis": "^5.10.0",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.2.1"
   },

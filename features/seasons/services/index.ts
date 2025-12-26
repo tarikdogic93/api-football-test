@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
+import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
 import { ONE_DAY } from "@/lib/constants";
 import {
   GetSeasonsParams,
@@ -17,7 +17,8 @@ import {
 } from "@/features/seasons/types";
 
 const SEASONS_COLLECTION = collection(db, "seasons");
-const MEILI_INDEX = meiliClient.index("seasons");
+const REDIS_INDEX = "seasons";
+const REDIS_PREFIX = "seasons:";
 
 export async function fetchSeasonsFromAPI(): Promise<number[]> {
   const response = await fetch(
@@ -41,9 +42,9 @@ export async function getSeasons({
   const now = Date.now();
 
   await ensureIndexOnce({
-    indexName: "seasons",
-    primaryKey: "year",
-    searchableAttributes: ["year"],
+    indexName: REDIS_INDEX,
+    prefix: REDIS_PREFIX,
+    schema: [["year", "NUMERIC", "SORTABLE"]],
   });
 
   const snapshotCheck = await getDocs(query(SEASONS_COLLECTION, limit(1)));
@@ -72,20 +73,48 @@ export async function getSeasons({
 
     await batch.commit();
 
-    const task = await MEILI_INDEX.addDocuments(
-      fetchedSeasons.map((season) => ({ year: season }))
+    await addDocuments(
+      REDIS_PREFIX,
+      fetchedSeasons.map((season) => ({ year: season })),
+      "year"
     );
-    await meiliClient.tasks.waitForTask(task.taskUid);
   }
 
-  const result = await MEILI_INDEX.search<SeasonType>("", {
-    limit: pageSize,
-    offset,
-  });
+  const searchResult = (await redis.sendCommand([
+    "FT.SEARCH",
+    REDIS_INDEX,
+    "*",
+    "RETURN",
+    "1",
+    "$.year",
+    "LIMIT",
+    offset.toString(),
+    pageSize.toString(),
+  ])) as any[];
+
+  const total = searchResult[0] as number;
+  const hits: SeasonType[] = [];
+
+  for (
+    let resultIndex = 1;
+    resultIndex < searchResult.length;
+    resultIndex += 2
+  ) {
+    const fieldArray = searchResult[resultIndex + 1] as string[];
+
+    const yearFieldPosition = fieldArray.findIndex(
+      (fieldName) => fieldName === "$.year"
+    );
+
+    if (yearFieldPosition >= 0 && fieldArray[yearFieldPosition + 1]) {
+      const yearValue = Number(fieldArray[yearFieldPosition + 1]);
+      hits.push({ year: yearValue });
+    }
+  }
 
   return {
-    seasons: result.hits,
-    total: result.estimatedTotalHits ?? result.hits.length,
-    offset: offset + result.hits.length,
+    seasons: hits,
+    total,
+    offset: offset + hits.length,
   };
 }

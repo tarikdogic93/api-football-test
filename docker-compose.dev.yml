@@ -1,0 +1,31 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: api-football-test:dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app:cached
+      - /app/node_modules
+      - /app/.next
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
+    depends_on:
+      - redis
+
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:

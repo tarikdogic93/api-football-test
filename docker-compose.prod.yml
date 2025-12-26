@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    image: api-football-test:prod
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
+    depends_on:
+      - redis
+
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+
+volumes:
+  redis-data:
