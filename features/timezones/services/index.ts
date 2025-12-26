@@ -8,7 +8,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
+import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
 import {
   GetTimezonesParams,
   TimezonesAPIResponse,
@@ -16,7 +16,8 @@ import {
 } from "@/features/timezones/types";
 
 const TIMEZONES_COLLECTION = collection(db, "timezones");
-const MEILI_INDEX = meiliClient.index("timezones");
+const REDIS_INDEX = "timezones";
+const REDIS_PREFIX = "timezones:";
 
 function generateSafeDocumentId(name: string): string {
   return name.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
@@ -39,9 +40,9 @@ export async function getTimezones({
   offset,
 }: GetTimezonesParams): Promise<TimezonesAPIResponse> {
   await ensureIndexOnce({
-    indexName: "timezones",
-    primaryKey: "id",
-    searchableAttributes: ["name"],
+    indexName: REDIS_INDEX,
+    prefix: REDIS_PREFIX,
+    schema: [["name", "TEXT", "SORTABLE"]],
   });
 
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
@@ -56,24 +57,46 @@ export async function getTimezones({
 
     await batch.commit();
 
-    const task = await MEILI_INDEX.addDocuments(
-      fetchedTimezones.map((timezone) => ({
-        id: generateSafeDocumentId(timezone),
-        name: timezone,
-      }))
+    await addDocuments(
+      REDIS_PREFIX,
+      fetchedTimezones.map((timezone) => ({ name: timezone })),
+      "name"
     );
-
-    await meiliClient.tasks.waitForTask(task.taskUid);
   }
 
-  const result = await MEILI_INDEX.search<TimezoneType>("", {
-    limit: pageSize,
-    offset,
-  });
+  const searchResult = (await redis.sendCommand([
+    "FT.SEARCH",
+    REDIS_INDEX,
+    "*",
+    "RETURN",
+    "1",
+    "$.name",
+    "LIMIT",
+    offset.toString(),
+    pageSize.toString(),
+  ])) as any[];
+
+  const total = searchResult[0] as number;
+  const hits: TimezoneType[] = [];
+
+  for (
+    let resultIndex = 1;
+    resultIndex < searchResult.length;
+    resultIndex += 2
+  ) {
+    const fieldArray = searchResult[resultIndex + 1] as string[];
+    const nameFieldPosition = fieldArray.findIndex(
+      (fieldName) => fieldName === "$.name"
+    );
+
+    if (nameFieldPosition >= 0 && fieldArray[nameFieldPosition + 1]) {
+      hits.push({ name: fieldArray[nameFieldPosition + 1] });
+    }
+  }
 
   return {
-    timezones: result.hits,
-    total: result.estimatedTotalHits ?? result.hits.length,
-    offset: offset + result.hits.length,
+    timezones: hits,
+    total,
+    offset: offset + hits.length,
   };
 }
