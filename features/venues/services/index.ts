@@ -12,7 +12,12 @@ import {
 import { db } from "@/lib/firebase";
 import { ONE_DAY } from "@/lib/constants";
 import { normalizeString } from "@/lib/utils";
-import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
+import {
+  redis,
+  ensureIndexOnce,
+  addDocuments,
+  parseRediSearchResults,
+} from "@/lib/redis";
 import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 
 const VENUES_COLLECTION = collection(db, "venues");
@@ -211,27 +216,31 @@ export async function getVenues({
   ])) as any[];
 
   const total = searchResult[0] as number;
-  const hits: VenueType[] = [];
 
-  for (let i = 1; i < searchResult.length; i += 2) {
-    const fields = searchResult[i + 1] as string[];
+  const rawHits = parseRediSearchResults<Record<string, string | null>>(
+    searchResult,
+    [
+      "$.id",
+      "$.name",
+      "$.city",
+      "$.country",
+      "$.address",
+      "$.capacity",
+      "$.surface",
+      "$.image",
+    ]
+  );
 
-    function getField(fieldName: string) {
-      const fieldIndex = fields.findIndex((item) => item === fieldName);
-      return fieldIndex !== -1 ? fields[fieldIndex + 1] : null;
-    }
-
-    hits.push({
-      id: Number(getField("$.id")),
-      name: getField("$.name")!,
-      city: getField("$.city")!,
-      country: getField("$.country")!,
-      address: getField("$.address")!,
-      capacity: Number(getField("$.capacity")),
-      surface: getField("$.surface")!,
-      image: getField("$.image")!,
-    });
-  }
+  const hits: VenueType[] = rawHits.map((hit) => ({
+    id: Number(hit["$.id"]),
+    name: hit["$.name"]!,
+    city: hit["$.city"],
+    country: hit["$.country"],
+    address: hit["$.address"],
+    capacity: hit["$.capacity"] !== null ? Number(hit["$.capacity"]) : null,
+    surface: hit["$.surface"],
+    image: hit["$.image"],
+  }));
 
   return {
     venues: hits,
