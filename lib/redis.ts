@@ -78,3 +78,29 @@ export async function addDocuments(
 
   await pipeline.exec();
 }
+
+function getFieldsObject(fields: string[], fieldNames: string[]) {
+  const result: Record<string, string | null> = {};
+
+  fieldNames.forEach((name) => {
+    const index = fields.findIndex((item) => item === name);
+    result[name] = index !== -1 ? fields[index + 1] : null;
+  });
+
+  return result;
+}
+
+export function parseRediSearchResults<T>(
+  searchResult: string[][],
+  fieldNames: string[]
+): T[] {
+  const hits: T[] = [];
+
+  for (let i = 1; i < searchResult.length; i += 2) {
+    const fields = searchResult[i + 1] as string[];
+    const obj = getFieldsObject(fields, fieldNames);
+    hits.push(obj as T);
+  }
+
+  return hits;
+}
