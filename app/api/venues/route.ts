@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { searchVenuesSchema } from "@/features/venues/schemas";
 import { getVenues } from "@/features/venues/services";
 
 export async function GET(req: NextRequest) {
   try {
-    const pageSizeParam = req.nextUrl.searchParams.get("pageSize");
-    const offsetParam = req.nextUrl.searchParams.get("offset");
-    const idQuery = req.nextUrl.searchParams.get("id")?.toLowerCase();
-    const nameQuery = req.nextUrl.searchParams.get("name")?.toLowerCase();
-    const cityQuery = req.nextUrl.searchParams.get("city")?.toLowerCase();
-    const countryQuery = req.nextUrl.searchParams.get("country")?.toLowerCase();
-    const searchQuery = req.nextUrl.searchParams.get("search")?.toLowerCase();
+    const queryParams = Object.fromEntries(req.nextUrl.searchParams.entries());
 
-    if (!idQuery && !nameQuery && !cityQuery && !countryQuery && !searchQuery) {
-      return NextResponse.json(
-        { error: "Please provide at least one query parameter" },
-        { status: 400 }
-      );
-    }
+    const validatedQuery = searchVenuesSchema.parse({
+      id: queryParams.id,
+      name: queryParams.name,
+      city: queryParams.city,
+      country: queryParams.country,
+      search: queryParams.search,
+    });
+
+    const pageSizeParam = queryParams.pageSize;
+    const offsetParam = queryParams.offset;
 
     const pageSize = pageSizeParam
       ? parseInt(pageSizeParam, 10)
@@ -34,11 +33,11 @@ export async function GET(req: NextRequest) {
     const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
 
     const result = await getVenues({
-      idQuery,
-      nameQuery,
-      cityQuery,
-      countryQuery,
-      searchQuery,
+      idQuery: validatedQuery.id,
+      nameQuery: validatedQuery.name,
+      cityQuery: validatedQuery.city,
+      countryQuery: validatedQuery.country,
+      searchQuery: validatedQuery.search,
       pageSize,
       offset,
     });
