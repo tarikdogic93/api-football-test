@@ -23,11 +23,37 @@ export const searchCountriesSchema = z
       });
     }
 
-    if (nonEmptyFields.length === 1) {
-      const filledField = nonEmptyFields[0];
-      const value = filledField.value!.trim();
+    const nameField = nonEmptyFields.find((field) => field.key === "name");
+    if (nameField) {
+      const nameValue = nameField.value!.trim();
+      if (!/^[a-zA-Z0-9 ]+$/.test(nameValue)) {
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Name can only include standard letters, numbers, and spaces (no accents or symbols)",
+          path: ["name"],
+        });
+      }
+    }
 
-      if (filledField.key === "search" && value.length < 3) {
+    const codeField = nonEmptyFields.find((field) => field.key === "code");
+    if (codeField) {
+      const codeValue = codeField.value!.trim();
+
+      if (codeValue.length < 2 || codeValue.length > 6) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Code must be between 2 and 6 characters",
+          path: ["code"],
+        });
+      }
+    }
+
+    const searchField = nonEmptyFields.find((field) => field.key === "search");
+    if (searchField) {
+      const searchValue = searchField.value!.trim();
+
+      if (searchValue.length < 3) {
         ctx.addIssue({
           code: "custom",
           message: "Search must be at least 3 characters",
@@ -35,14 +61,12 @@ export const searchCountriesSchema = z
         });
       }
 
-      if (
-        filledField.key === "code" &&
-        (value.length < 2 || value.length > 6)
-      ) {
+      if (!/^[a-zA-Z0-9 ]+$/.test(searchValue)) {
         ctx.addIssue({
           code: "custom",
-          message: "Code must be between 2 and 6 characters",
-          path: ["code"],
+          message:
+            "Search can only include standard letters, numbers, and spaces (no accents or symbols)",
+          path: ["search"],
         });
       }
     }
