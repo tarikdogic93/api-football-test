@@ -8,7 +8,12 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
+import {
+  redis,
+  ensureIndexOnce,
+  addDocuments,
+  parseRediSearchResults,
+} from "@/lib/redis";
 import { ONE_DAY } from "@/lib/constants";
 import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
@@ -129,21 +134,17 @@ export async function getCountries({
   ])) as any[];
 
   const total = searchResult[0] as number;
-  const hits: CountryType[] = [];
 
-  for (let i = 1; i < searchResult.length; i += 2) {
-    const fields = searchResult[i + 1] as string[];
+  const rawHits = parseRediSearchResults<Record<string, string | null>>(
+    searchResult,
+    ["$.name", "$.code", "$.flag"]
+  );
 
-    const nameIndex = fields.findIndex((f) => f === "$.name");
-    const codeIndex = fields.findIndex((f) => f === "$.code");
-    const flagIndex = fields.findIndex((f) => f === "$.flag");
-
-    hits.push({
-      name: fields[nameIndex + 1],
-      code: fields[codeIndex + 1],
-      flag: fields[flagIndex + 1],
-    });
-  }
+  const hits: CountryType[] = rawHits.map((hit) => ({
+    name: hit["$.name"]!,
+    code: hit["$.code"],
+    flag: hit["$.flag"],
+  }));
 
   return {
     countries: hits,
