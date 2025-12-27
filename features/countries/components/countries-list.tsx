@@ -10,7 +10,7 @@ export default function CountriesList({ countries }: CountriesListProps) {
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
       {countries.map((country) => (
         <Country
-          key={country.name}
+          key={country.code}
           name={country.name}
           code={country.code}
           flag={country.flag}
