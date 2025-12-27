@@ -10,16 +10,23 @@ import {
 import { db } from "@/lib/firebase";
 import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
 import { ONE_DAY } from "@/lib/constants";
-import {
-  CountryType,
-  GetCountriesParams,
-  CountriesAPIResponse,
-} from "@/features/countries/types";
+import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
 const COUNTRIES_COLLECTION = collection(db, "countries");
 const WORLD_DOCUMENT_ID = "WORLD";
 const REDIS_INDEX = "countries";
 const REDIS_PREFIX = "countries:";
+
+type CountriesQueryParams = {
+  nameQuery?: string;
+  codeQuery?: string;
+  searchQuery?: string;
+};
+
+type CountriesParams = CountriesQueryParams & {
+  pageSize: number;
+  offset: number;
+};
 
 export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
   const response = await fetch("https://v3.football.api-sports.io/countries", {
@@ -39,7 +46,7 @@ export async function getCountries({
   nameQuery,
   codeQuery,
   searchQuery,
-}: GetCountriesParams): Promise<CountriesAPIResponse> {
+}: CountriesParams): Promise<CountriesAPIResponse> {
   const now = Date.now();
 
   await ensureIndexOnce({

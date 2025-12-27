@@ -1,5 +1,9 @@
-import { CountriesListProps } from "@/features/countries/types";
+import { CountryType } from "@/features/countries/types";
 import Country from "@/features/countries/components/country";
+
+type CountriesListProps = {
+  countries: CountryType[];
+};
 
 export default function CountriesList({ countries }: CountriesListProps) {
   return (

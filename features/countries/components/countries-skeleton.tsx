@@ -1,6 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CountriesSkeletonProps } from "@/features/countries/types";
+
+export type CountriesSkeletonProps = {
+  pageSize: number;
+};
 
 export default function CountriesSkeleton({
   pageSize,
