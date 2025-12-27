@@ -61,7 +61,6 @@ export default function CountriesPage() {
     setCurrentPage(1);
   };
 
-  const isExactQuery = !!queryParams.name || !!queryParams.code;
   const totalPages = Math.ceil(total / pageSize);
 
   useEffect(() => {
@@ -71,12 +70,7 @@ export default function CountriesPage() {
 
       try {
         const params = new URLSearchParams();
-        const offset = isExactQuery ? 0 : (currentPage - 1) * pageSize;
-
-        if (!isExactQuery) {
-          params.set("pageSize", String(pageSize));
-          params.set("offset", String(offset));
-        }
+        const offset = (currentPage - 1) * pageSize;
 
         if (queryParams.name) params.set("name", queryParams.name);
         if (queryParams.code) params.set("code", queryParams.code);
@@ -97,7 +91,7 @@ export default function CountriesPage() {
     }
 
     load();
-  }, [currentPage, pageSize, queryParams, isExactQuery]);
+  }, [currentPage, pageSize, queryParams]);
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
