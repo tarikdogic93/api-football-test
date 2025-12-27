@@ -1,5 +1,8 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { VenuesSkeletonProps } from "@/features/venues/types";
+
+type VenuesSkeletonProps = {
+  pageSize: number;
+};
 
 export default function VenuesSkeleton({ pageSize }: VenuesSkeletonProps) {
   return (

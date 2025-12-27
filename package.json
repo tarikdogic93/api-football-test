@@ -34,6 +34,7 @@
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.69.0",
     "redis": "^5.10.0",
+    "remove-accents": "^0.5.0",
     "tailwind-merge": "^3.4.0",
     "zod": "^4.2.1"
   },

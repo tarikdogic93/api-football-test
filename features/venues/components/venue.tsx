@@ -1,6 +1,8 @@
 import Image from "next/image";
 
-import { VenueProps } from "@/features/venues/types";
+import { VenueType } from "@/features/venues/types";
+
+type VenueProps = VenueType;
 
 export default function Venue({
   name,

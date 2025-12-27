@@ -10,26 +10,31 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { meiliClient, ensureIndexOnce } from "@/lib/meilisearch";
 import { ONE_DAY } from "@/lib/constants";
-import {
-  GetVenuesParams,
-  VenuesAPIResponse,
-  VenueType,
-} from "@/features/venues/types";
+import { normalizeString } from "@/lib/utils";
+import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
+import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 
 const VENUES_COLLECTION = collection(db, "venues");
-const MEILI_INDEX = meiliClient.index("venues");
+const REDIS_INDEX = "venues";
+const REDIS_PREFIX = "venues:";
 
 let lastFetchedQuerySignature: string | null = null;
 
-function buildVenuesQuerySignature(params: {
+type VenuesQueryParams = {
   idQuery?: string;
   nameQuery?: string;
   cityQuery?: string;
   countryQuery?: string;
   searchQuery?: string;
-}) {
+};
+
+type VenuesParams = VenuesQueryParams & {
+  pageSize: number;
+  offset: number;
+};
+
+function buildVenuesQuerySignature(params: VenuesQueryParams) {
   return JSON.stringify({
     idQuery: params.idQuery ?? null,
     nameQuery: params.nameQuery ?? null,
@@ -39,13 +44,7 @@ function buildVenuesQuerySignature(params: {
   });
 }
 
-export async function fetchVenuesFromAPI(query: {
-  idQuery?: string;
-  nameQuery?: string;
-  cityQuery?: string;
-  countryQuery?: string;
-  searchQuery?: string;
-}) {
+export async function fetchVenuesFromAPI(query: VenuesQueryParams) {
   const params = new URLSearchParams();
   if (query.idQuery) params.set("id", query.idQuery);
   if (query.nameQuery) params.set("name", query.nameQuery);
@@ -72,14 +71,21 @@ export async function getVenues({
   cityQuery,
   countryQuery,
   searchQuery,
-}: GetVenuesParams): Promise<VenuesAPIResponse> {
+}: VenuesParams): Promise<VenuesAPIResponse> {
   const now = Date.now();
 
   await ensureIndexOnce({
-    indexName: "venues",
-    primaryKey: "id",
-    searchableAttributes: ["name", "city", "country"],
-    filterableAttributes: ["id", "name", "city", "country"],
+    indexName: REDIS_INDEX,
+    prefix: REDIS_PREFIX,
+    schema: [
+      ["id", "TAG"],
+      ["name_exact", "TAG"],
+      ["name_search", "TEXT"],
+      ["city_exact", "TAG"],
+      ["city_search", "TEXT"],
+      ["country_exact", "TAG"],
+      ["country_search", "TEXT"],
+    ],
   });
 
   const currentQuerySignature = buildVenuesQuerySignature({
@@ -92,8 +98,13 @@ export async function getVenues({
 
   let shouldFetchAPI = lastFetchedQuerySignature !== currentQuerySignature;
 
+  if (!shouldFetchAPI) {
+    const snapshotCheck = await getDocs(query(VENUES_COLLECTION, limit(1)));
+    if (snapshotCheck.empty) shouldFetchAPI = true;
+  }
+
   if (!shouldFetchAPI && idQuery) {
-    const venueDoc = await getDoc(doc(VENUES_COLLECTION, String(idQuery)));
+    const venueDoc = await getDoc(doc(VENUES_COLLECTION, idQuery));
     if (!venueDoc.exists()) shouldFetchAPI = true;
     else {
       const data = venueDoc.data() as VenueType & { updatedAt?: number };
@@ -120,11 +131,6 @@ export async function getVenues({
     }
   }
 
-  if (!shouldFetchAPI) {
-    const snapshotCheck = await getDocs(query(VENUES_COLLECTION, limit(1)));
-    if (snapshotCheck.empty) shouldFetchAPI = true;
-  }
-
   let fetchedVenues: VenueType[] = [];
 
   if (shouldFetchAPI) {
@@ -147,41 +153,89 @@ export async function getVenues({
       }
       await batch.commit();
 
-      const task = await MEILI_INDEX.addDocuments(fetchedVenues);
-      await meiliClient.tasks.waitForTask(task.taskUid);
+      await addDocuments(
+        REDIS_PREFIX,
+        fetchedVenues.map((venue) => ({
+          ...venue,
+          id: String(venue.id),
+          name_exact: normalizeString(venue.name),
+          city_exact: normalizeString(venue.city),
+          country_exact: normalizeString(venue.country),
+          name_search: normalizeString(venue.name),
+          city_search: normalizeString(venue.city),
+          country_search: normalizeString(venue.country),
+        })),
+        "id"
+      );
 
       lastFetchedQuerySignature = currentQuerySignature;
     }
   }
 
   const filters: string[] = [];
-  if (idQuery) filters.push(`id = ${idQuery}`);
-  if (nameQuery) filters.push(`name = "${nameQuery}"`);
-  if (cityQuery) filters.push(`city = "${cityQuery}"`);
-  if (countryQuery) filters.push(`country = "${countryQuery}"`);
 
-  let result;
-  if (searchQuery) {
+  if (idQuery) filters.push(`@id:{${idQuery.toLowerCase()}}`);
+  if (nameQuery) filters.push(`@name_exact:{${normalizeString(nameQuery)}}`);
+  if (cityQuery) filters.push(`@city_exact:{${normalizeString(cityQuery)}}`);
+  if (countryQuery)
+    filters.push(`@country_exact:{${normalizeString(countryQuery)}}`);
+
+  if (searchQuery)
     filters.push(
-      `name CONTAINS "${searchQuery}" OR city CONTAINS "${searchQuery}" OR country CONTAINS "${searchQuery}"`
+      `(@name_search|city_search|country_search:*${normalizeString(
+        searchQuery
+      )}*)`
     );
 
-    result = await MEILI_INDEX.search<VenueType>("", {
-      limit: pageSize,
-      offset,
-      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
-    });
-  } else {
-    result = await MEILI_INDEX.search<VenueType>("", {
-      limit: pageSize,
-      offset,
-      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
+  const searchQueryString = filters.length > 0 ? filters.join(" ") : "*";
+
+  const searchResult = (await redis.sendCommand([
+    "FT.SEARCH",
+    REDIS_INDEX,
+    searchQueryString,
+    "LIMIT",
+    offset.toString(),
+    pageSize.toString(),
+    "RETURN",
+    "10",
+    "$.id",
+    "$.name",
+    "$.city",
+    "$.country",
+    "$.address",
+    "$.capacity",
+    "$.surface",
+    "$.image",
+    "DIALECT",
+    "2",
+  ])) as any[];
+
+  const total = searchResult[0] as number;
+  const hits: VenueType[] = [];
+
+  for (let i = 1; i < searchResult.length; i += 2) {
+    const fields = searchResult[i + 1] as string[];
+
+    function getField(fieldName: string) {
+      const fieldIndex = fields.findIndex((item) => item === fieldName);
+      return fieldIndex !== -1 ? fields[fieldIndex + 1] : null;
+    }
+
+    hits.push({
+      id: Number(getField("$.id")),
+      name: getField("$.name")!,
+      city: getField("$.city")!,
+      country: getField("$.country")!,
+      address: getField("$.address")!,
+      capacity: Number(getField("$.capacity")),
+      surface: getField("$.surface")!,
+      image: getField("$.image")!,
     });
   }
 
   return {
-    venues: result.hits,
-    total: result.estimatedTotalHits ?? result.hits.length,
-    offset: offset + result.hits.length,
+    venues: hits,
+    total,
+    offset: offset + hits.length,
   };
 }

@@ -1,5 +1,9 @@
-import { VenuesListProps } from "@/features/venues/types";
+import { VenueType } from "@/features/venues/types";
 import Venue from "@/features/venues/components/venue";
+
+type VenuesListProps = {
+  venues: VenueType[];
+};
 
 export default function VenuesList({ venues }: VenuesListProps) {
   return (

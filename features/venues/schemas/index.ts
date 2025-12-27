@@ -27,12 +27,35 @@ export const searchVenuesSchema = z
       });
     }
 
-    if (nonEmptyFields.length === 1 && nonEmptyFields[0].key === "search") {
-      const value = nonEmptyFields[0].value!.trim();
-      if (value.length < 3) {
+    const idField = nonEmptyFields.find((field) => field.key === "id");
+    if (idField) {
+      const idValue = idField.value!.trim();
+      if (!/^[1-9]\d*$/.test(idValue)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "ID must be a natural number",
+          path: ["id"],
+        });
+      }
+    }
+
+    const searchField = nonEmptyFields.find((field) => field.key === "search");
+    if (searchField) {
+      const searchValue = searchField.value!.trim();
+
+      if (searchValue.length < 3) {
         ctx.addIssue({
           code: "custom",
           message: "Search must be at least 3 characters",
+          path: ["search"],
+        });
+      }
+
+      if (!/^[a-zA-Z0-9 ]+$/.test(searchValue)) {
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Search can only include standard letters, numbers, and spaces (no accents or symbols)",
           path: ["search"],
         });
       }
