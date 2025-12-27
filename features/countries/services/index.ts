@@ -15,6 +15,7 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { ONE_DAY } from "@/lib/constants";
+import { normalizeString } from "@/lib/utils";
 import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
 const COUNTRIES_COLLECTION = collection(db, "countries");
@@ -59,9 +60,8 @@ export async function getCountries({
     prefix: REDIS_PREFIX,
     schema: [
       ["code", "TAG"],
-      ["name", "TEXT"],
       ["name_exact", "TAG"],
-      ["flag", "TEXT"],
+      ["name_search", "TEXT"],
     ],
   });
 
@@ -95,7 +95,8 @@ export async function getCountries({
       fetchedCountries.map((country) => ({
         ...country,
         code: country.code ?? WORLD_DOCUMENT_ID,
-        name_exact: country.name.toLowerCase(),
+        name_exact: normalizeString(country.name),
+        name_search: normalizeString(country.name),
       })),
       "code"
     );
@@ -108,11 +109,11 @@ export async function getCountries({
   }
 
   if (nameQuery) {
-    filters.push(`@name_exact:{${nameQuery.toLowerCase()}}`);
+    filters.push(`@name_exact:{${normalizeString(nameQuery)}}`);
   }
 
   if (searchQuery) {
-    filters.push(`@name:*${searchQuery.toLowerCase()}*`);
+    filters.push(`@name_search:*${normalizeString(searchQuery)}*`);
   }
 
   const searchQueryString = filters.length > 0 ? filters.join(" ") : "*";
