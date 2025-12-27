@@ -8,7 +8,12 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
+import {
+  redis,
+  ensureIndexOnce,
+  addDocuments,
+  parseRediSearchResults,
+} from "@/lib/redis";
 import { ONE_DAY } from "@/lib/constants";
 import {
   GetSeasonsParams,
@@ -93,24 +98,14 @@ export async function getSeasons({
   ])) as any[];
 
   const total = searchResult[0] as number;
-  const hits: SeasonType[] = [];
 
-  for (
-    let resultIndex = 1;
-    resultIndex < searchResult.length;
-    resultIndex += 2
-  ) {
-    const fieldArray = searchResult[resultIndex + 1] as string[];
+  const rawHits = parseRediSearchResults<Record<string, string>>(searchResult, [
+    "$.year",
+  ]);
 
-    const yearFieldPosition = fieldArray.findIndex(
-      (fieldName) => fieldName === "$.year"
-    );
-
-    if (yearFieldPosition >= 0 && fieldArray[yearFieldPosition + 1]) {
-      const yearValue = Number(fieldArray[yearFieldPosition + 1]);
-      hits.push({ year: yearValue });
-    }
-  }
+  const hits: SeasonType[] = rawHits.map((hit) => ({
+    year: Number(hit["$.year"]),
+  }));
 
   return {
     seasons: hits,
