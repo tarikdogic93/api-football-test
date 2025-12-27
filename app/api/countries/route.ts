@@ -2,14 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { getCountries } from "@/features/countries/services";
+import { searchCountriesSchema } from "@/features/countries/schemas";
 
 export async function GET(req: NextRequest) {
   try {
-    const pageSizeParam = req.nextUrl.searchParams.get("pageSize");
-    const offsetParam = req.nextUrl.searchParams.get("offset");
-    const nameQuery = req.nextUrl.searchParams.get("name")?.toLowerCase();
-    const codeQuery = req.nextUrl.searchParams.get("code")?.toLowerCase();
-    const searchQuery = req.nextUrl.searchParams.get("search")?.toLowerCase();
+    const queryParams = Object.fromEntries(req.nextUrl.searchParams.entries());
+
+    const validatedQuery = searchCountriesSchema.parse({
+      name: queryParams.name,
+      code: queryParams.code,
+      search: queryParams.search,
+    });
+
+    const pageSizeParam = queryParams.pageSize;
+    const offsetParam = queryParams.offset;
 
     const pageSize = pageSizeParam
       ? parseInt(pageSizeParam, 10)
@@ -27,9 +33,9 @@ export async function GET(req: NextRequest) {
     const result = await getCountries({
       pageSize,
       offset,
-      nameQuery,
-      codeQuery,
-      searchQuery,
+      nameQuery: validatedQuery.name,
+      codeQuery: validatedQuery.code,
+      searchQuery: validatedQuery.search,
     });
 
     return NextResponse.json(result);
