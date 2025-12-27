@@ -8,7 +8,12 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { redis, ensureIndexOnce, addDocuments } from "@/lib/redis";
+import {
+  redis,
+  ensureIndexOnce,
+  addDocuments,
+  parseRediSearchResults,
+} from "@/lib/redis";
 import {
   GetTimezonesParams,
   TimezonesAPIResponse,
@@ -77,22 +82,14 @@ export async function getTimezones({
   ])) as any[];
 
   const total = searchResult[0] as number;
-  const hits: TimezoneType[] = [];
 
-  for (
-    let resultIndex = 1;
-    resultIndex < searchResult.length;
-    resultIndex += 2
-  ) {
-    const fieldArray = searchResult[resultIndex + 1] as string[];
-    const nameFieldPosition = fieldArray.findIndex(
-      (fieldName) => fieldName === "$.name"
-    );
+  const rawHits = parseRediSearchResults<Record<string, string>>(searchResult, [
+    "$.name",
+  ]);
 
-    if (nameFieldPosition >= 0 && fieldArray[nameFieldPosition + 1]) {
-      hits.push({ name: fieldArray[nameFieldPosition + 1] });
-    }
-  }
+  const hits: TimezoneType[] = rawHits.map((hit) => ({
+    name: hit["$.name"],
+  }));
 
   return {
     timezones: hits,
