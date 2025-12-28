@@ -1,9 +1,24 @@
 services:
+  redis:
+    image: redis/redis-stack-server:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   app:
     build:
       context: .
       dockerfile: Dockerfile.dev
     image: api-football-test:dev
+    container_name: api-app-dev
     ports:
       - "3000:3000"
     volumes:
@@ -16,16 +31,27 @@ services:
       NODE_ENV: development
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
-  redis:
-    image: redis/redis-stack-server:latest
-    container_name: redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: api-football-test:dev
+    container_name: api-worker-dev
+    command: npm run worker
     volumes:
-      - redis-data:/data
+      - .:/app:cached
+      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
+    depends_on:
+      redis:
+        condition: service_healthy
 
 volumes:
   redis-data:

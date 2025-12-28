@@ -4,15 +4,15 @@ FROM node:20-alpine
 # Set working directory
 WORKDIR /app
 
-# Install dependencies first (cache this layer)
+# Install dependencies (including devDependencies)
 COPY package*.json ./
-RUN npm install
+RUN npm install --include=dev
 
 # Copy app code
 COPY . .
 
-# Expose Next.js dev port
+# Expose Next.js port
 EXPOSE 3000
 
-# Start Next.js in development mode
+# Default command for app (can be overridden in docker-compose)
 CMD ["npm", "run", "dev"]
