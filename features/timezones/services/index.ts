@@ -9,7 +9,7 @@ import {
 
 import { db } from "@/lib/firebase";
 import {
-  redis,
+  ensureRedisConnected,
   ensureIndexOnce,
   addDocuments,
   parseRediSearchResults,
@@ -44,6 +44,8 @@ export async function getTimezones({
   pageSize,
   offset,
 }: GetTimezonesParams): Promise<TimezonesAPIResponse> {
+  const redisClient = await ensureRedisConnected();
+
   await ensureIndexOnce({
     indexName: REDIS_INDEX,
     prefix: REDIS_PREFIX,
@@ -69,7 +71,7 @@ export async function getTimezones({
     );
   }
 
-  const searchResult = (await redis.sendCommand([
+  const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
     REDIS_INDEX,
     "*",

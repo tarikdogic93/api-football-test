@@ -1,20 +1,13 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  writeBatch,
-  query,
-} from "firebase/firestore";
+import { collection, getDocs, limit, query } from "firebase/firestore";
 
+import { ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
-  redis,
+  ensureRedisConnected,
   ensureIndexOnce,
-  addDocuments,
   parseRediSearchResults,
 } from "@/lib/redis";
-import { ONE_DAY } from "@/lib/constants";
+import { addBackgroundJob } from "@/lib/queue";
 import {
   GetSeasonsParams,
   SeasonsAPIResponse,
@@ -24,6 +17,8 @@ import {
 const SEASONS_COLLECTION = collection(db, "seasons");
 const REDIS_INDEX = "seasons";
 const REDIS_PREFIX = "seasons:";
+
+let fetchedSeasonsCache: number[] | null = null;
 
 export async function fetchSeasonsFromAPI(): Promise<number[]> {
   const response = await fetch(
@@ -46,6 +41,8 @@ export async function getSeasons({
 }: GetSeasonsParams): Promise<SeasonsAPIResponse> {
   const now = Date.now();
 
+  const redisClient = await ensureRedisConnected();
+
   await ensureIndexOnce({
     indexName: REDIS_INDEX,
     prefix: REDIS_PREFIX,
@@ -65,27 +62,47 @@ export async function getSeasons({
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
 
-  if (shouldFetchAPI) {
-    const fetchedSeasons = await fetchSeasonsFromAPI();
-    const batch = writeBatch(db);
+  const lockKey = "seasons:fetch-lock";
 
-    for (const season of fetchedSeasons) {
-      batch.set(doc(SEASONS_COLLECTION, String(season)), {
-        year: season,
-        updatedAt: now,
-      });
+  if (shouldFetchAPI && !fetchedSeasonsCache) {
+    const lockAcquired = await redisClient.set(lockKey, "1", {
+      NX: true,
+      EX: 10,
+    });
+
+    if (lockAcquired) {
+      try {
+        fetchedSeasonsCache = await fetchSeasonsFromAPI();
+
+        await addBackgroundJob("storeSeasons", {
+          seasons: fetchedSeasonsCache,
+          timestamp: Date.now(),
+          collectionPath: "seasons",
+          redisPrefix: REDIS_PREFIX,
+        });
+      } finally {
+        await redisClient.del(lockKey);
+      }
     }
-
-    await batch.commit();
-
-    await addDocuments(
-      REDIS_PREFIX,
-      fetchedSeasons.map((season) => ({ year: season })),
-      "year"
-    );
   }
 
-  const searchResult = (await redis.sendCommand([
+  const indexedAtStr = await redisClient.get("seasons:indexed");
+  const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
+  const isIndexedFresh = now - indexedAt <= ONE_DAY;
+
+  if (!isIndexedFresh && fetchedSeasonsCache) {
+    const seasons = fetchedSeasonsCache
+      .slice(offset, offset + pageSize)
+      .map((year) => ({ year }));
+
+    return {
+      seasons,
+      total: fetchedSeasonsCache.length,
+      offset: offset + seasons.length,
+    };
+  }
+
+  const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
     REDIS_INDEX,
     "*",
@@ -106,6 +123,8 @@ export async function getSeasons({
   const hits: SeasonType[] = rawHits.map((hit) => ({
     year: Number(hit["$.year"]),
   }));
+
+  if (fetchedSeasonsCache) fetchedSeasonsCache = null;
 
   return {
     seasons: hits,

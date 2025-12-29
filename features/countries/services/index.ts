@@ -9,7 +9,7 @@ import {
 
 import { db } from "@/lib/firebase";
 import {
-  redis,
+  ensureRedisConnected,
   ensureIndexOnce,
   addDocuments,
   parseRediSearchResults,
@@ -54,6 +54,8 @@ export async function getCountries({
   searchQuery,
 }: CountriesParams): Promise<CountriesAPIResponse> {
   const now = Date.now();
+
+  const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
     indexName: REDIS_INDEX,
@@ -118,7 +120,7 @@ export async function getCountries({
 
   const searchQueryString = filters.length > 0 ? filters.join(" ") : "*";
 
-  const searchResult = (await redis.sendCommand([
+  const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
     REDIS_INDEX,
     searchQueryString,

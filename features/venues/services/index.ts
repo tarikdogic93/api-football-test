@@ -13,7 +13,7 @@ import { db } from "@/lib/firebase";
 import { ONE_DAY } from "@/lib/constants";
 import { normalizeString } from "@/lib/utils";
 import {
-  redis,
+  ensureRedisConnected,
   ensureIndexOnce,
   addDocuments,
   parseRediSearchResults,
@@ -78,6 +78,8 @@ export async function getVenues({
   searchQuery,
 }: VenuesParams): Promise<VenuesAPIResponse> {
   const now = Date.now();
+
+  const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
     indexName: REDIS_INDEX,
@@ -194,7 +196,7 @@ export async function getVenues({
 
   const searchQueryString = filters.length > 0 ? filters.join(" ") : "*";
 
-  const searchResult = (await redis.sendCommand([
+  const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
     REDIS_INDEX,
     searchQueryString,
