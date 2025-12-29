@@ -1,19 +1,28 @@
 import { createClient } from "redis";
 
-const redisUrl = process.env.REDIS_URL;
+let redisClient: ReturnType<typeof createClient> | null = null;
 
-if (!redisUrl) {
-  throw new Error("Missing REDIS_URL environment variable");
+function getRedisClient() {
+  if (!redisClient) {
+    const redisUrl = process.env.REDIS_URL;
+    if (!redisUrl) {
+      throw new Error("Missing REDIS_URL environment variable");
+    }
+
+    redisClient = createClient({ url: redisUrl });
+
+    redisClient.on("error", (err) => console.error("Redis Client Error:", err));
+  }
+
+  return redisClient;
 }
 
-export const redis = createClient({ url: redisUrl });
-
-redis.on("error", (err) => console.error("Redis Client Error:", err));
-
-async function ensureConnected() {
-  if (!redis.isOpen) {
-    await redis.connect();
+export async function ensureRedisConnected() {
+  const redisClient = getRedisClient();
+  if (!redisClient.isOpen) {
+    await redisClient.connect();
   }
+  return redisClient;
 }
 
 type SchemaFieldType = "NUMERIC" | "TEXT" | "TAG" | "GEO";
@@ -29,7 +38,7 @@ export async function ensureIndexOnce(params: {
 
   if (!indexInitPromises[indexName]) {
     indexInitPromises[indexName] = (async () => {
-      await ensureConnected();
+      const redisClient = await ensureRedisConnected();
 
       try {
         const schemaFlattened = schema.flatMap(([field, type, option]) =>
@@ -38,7 +47,7 @@ export async function ensureIndexOnce(params: {
             : [`$.${field}`, "AS", field, type]
         );
 
-        await redis.sendCommand([
+        await redisClient.sendCommand([
           "FT.CREATE",
           indexName,
           "ON",
@@ -65,9 +74,9 @@ export async function addDocuments(
   docs: Record<string, any>[],
   idField: string
 ) {
-  await ensureConnected();
+  const redisClient = await ensureRedisConnected();
 
-  const pipeline = redis.multi();
+  const pipeline = redisClient.multi();
 
   for (const doc of docs) {
     const id = String(doc[idField]);
