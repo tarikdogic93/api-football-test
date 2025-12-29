@@ -21,9 +21,10 @@ services:
     container_name: api-app-prod
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
-      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
     depends_on:
       redis:
         condition: service_healthy
@@ -34,10 +35,11 @@ services:
       dockerfile: Dockerfile.prod
     image: api-football-test:prod
     container_name: api-worker-prod
-    command: npm run worker
+    command: npm run worker:prod
+    env_file:
+      - .env
     environment:
       NODE_ENV: production
-      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY}
     depends_on:
       redis:
         condition: service_healthy
