@@ -1,23 +1,24 @@
-import IORedis from "ioredis";
 import { Queue } from "bullmq";
+import { ensureIORedisConnected } from "@/lib/ioredis";
 
-const redisUrl = process.env.REDIS_URL;
+let backgroundQueueInstance: Queue | null = null;
 
-if (!redisUrl) {
-  throw new Error("Missing REDIS_URL environment variable");
+export async function getBackgroundQueue(): Promise<Queue> {
+  if (!backgroundQueueInstance) {
+    const redisConnection = await ensureIORedisConnected();
+
+    backgroundQueueInstance = new Queue("backgroundQueue", {
+      connection: redisConnection,
+    });
+  }
+
+  return backgroundQueueInstance;
 }
 
-export const connection = new IORedis(redisUrl, {
-  maxRetriesPerRequest: null,
-});
-
-export const backgroundQueue = new Queue("backgroundQueue", {
-  connection,
-});
-
 export async function addBackgroundJob(
-  name: string,
-  data: Record<string, any>
+  jobName: string,
+  jobData: Record<string, any>
 ) {
-  await backgroundQueue.add(name, data);
+  const queue = await getBackgroundQueue();
+  await queue.add(jobName, jobData);
 }
