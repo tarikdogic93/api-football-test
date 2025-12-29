@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2017",
     "module": "CommonJS",
-    "lib": ["esnext"],
+    "lib": ["dom", "dom.iterable", "esnext"],
     "strict": true,
     "esModuleInterop": true,
     "moduleResolution": "node",
