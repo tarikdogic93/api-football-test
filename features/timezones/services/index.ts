@@ -1,19 +1,13 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  limit,
-  query,
-  writeBatch,
-} from "firebase/firestore";
+import { collection, getDocs, limit, query } from "firebase/firestore";
 
+import { ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
   ensureIndexOnce,
-  addDocuments,
   parseRediSearchResults,
 } from "@/lib/redis";
+import { addBackgroundJob } from "@/lib/queue";
 import {
   GetTimezonesParams,
   TimezonesAPIResponse,
@@ -24,9 +18,7 @@ const TIMEZONES_COLLECTION = collection(db, "timezones");
 const REDIS_INDEX = "timezones";
 const REDIS_PREFIX = "timezones:";
 
-function generateSafeDocumentId(name: string): string {
-  return name.trim().replace(/[^a-zA-Z0-9_-]/g, "_");
-}
+let fetchedTimezonesCache: string[] | null = null;
 
 export async function fetchTimezonesFromAPI(): Promise<string[]> {
   const response = await fetch("https://v3.football.api-sports.io/timezone", {
@@ -44,6 +36,7 @@ export async function getTimezones({
   pageSize,
   offset,
 }: GetTimezonesParams): Promise<TimezonesAPIResponse> {
+  const now = Date.now();
   const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
@@ -53,22 +46,46 @@ export async function getTimezones({
   });
 
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
-  if (snapshotCheck.empty) {
-    const fetchedTimezones = await fetchTimezonesFromAPI();
-    const batch = writeBatch(db);
+  const shouldFetchAPI = snapshotCheck.empty;
 
-    for (const timezone of fetchedTimezones) {
-      const documentId = generateSafeDocumentId(timezone);
-      batch.set(doc(TIMEZONES_COLLECTION, documentId), { name: timezone });
+  const lockKey = "timezones:fetch-lock";
+
+  if (shouldFetchAPI && !fetchedTimezonesCache) {
+    const lockAcquired = await redisClient.set(lockKey, "1", {
+      NX: true,
+      EX: 10,
+    });
+
+    if (lockAcquired) {
+      try {
+        fetchedTimezonesCache = await fetchTimezonesFromAPI();
+
+        await addBackgroundJob("storeTimezones", {
+          timezones: fetchedTimezonesCache,
+          timestamp: now,
+          collectionPath: "timezones",
+          redisPrefix: REDIS_PREFIX,
+        });
+      } finally {
+        await redisClient.del(lockKey);
+      }
     }
+  }
 
-    await batch.commit();
+  const indexedAtStr = await redisClient.get("timezones:indexed");
+  const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
+  const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
-    await addDocuments(
-      REDIS_PREFIX,
-      fetchedTimezones.map((timezone) => ({ name: timezone })),
-      "name"
-    );
+  if (!isIndexedFresh && fetchedTimezonesCache) {
+    const timezones = fetchedTimezonesCache
+      .slice(offset, offset + pageSize)
+      .map((name) => ({ name }));
+
+    return {
+      timezones,
+      total: fetchedTimezonesCache.length,
+      offset: offset + timezones.length,
+    };
   }
 
   const searchResult = (await redisClient.sendCommand([
@@ -92,6 +109,8 @@ export async function getTimezones({
   const hits: TimezoneType[] = rawHits.map((hit) => ({
     name: hit["$.name"],
   }));
+
+  if (fetchedTimezonesCache) fetchedTimezonesCache = null;
 
   return {
     timezones: hits,
