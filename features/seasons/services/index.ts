@@ -1,6 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import { JOB_NAMES, ONE_DAY } from "@/lib/constants";
+import { JOB_NAMES, ONE_DAY, SEASONS_CONSTANTS } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -15,12 +15,7 @@ type SeasonsParams = {
   offset: number;
 };
 
-const collectionPath = "seasons";
-const SEASONS_COLLECTION = collection(db, collectionPath);
-const REDIS_INDEX = collectionPath;
-const REDIS_PREFIX = `${collectionPath}:`;
-const REDIS_LOCK_KEY = `${collectionPath}:fetch-lock`;
-const REDIS_INDEXED_KEY = `${collectionPath}:indexed`;
+const SEASONS_COLLECTION = collection(db, SEASONS_CONSTANTS.COLLECTION_PATH);
 
 let fetchedSeasonsCache: number[] | null = null;
 
@@ -48,8 +43,8 @@ export async function getSeasons({
   const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
-    indexName: REDIS_INDEX,
-    prefix: REDIS_PREFIX,
+    indexName: SEASONS_CONSTANTS.REDIS_INDEX,
+    prefix: SEASONS_CONSTANTS.REDIS_PREFIX,
     schema: [["year", "NUMERIC", "SORTABLE"]],
   });
 
@@ -67,10 +62,14 @@ export async function getSeasons({
   }
 
   if (shouldFetchAPI && !fetchedSeasonsCache) {
-    const lockAcquired = await redisClient.set(REDIS_LOCK_KEY, "1", {
-      NX: true,
-      EX: 10,
-    });
+    const lockAcquired = await redisClient.set(
+      SEASONS_CONSTANTS.REDIS_LOCK_KEY,
+      "1",
+      {
+        NX: true,
+        EX: 10,
+      }
+    );
 
     if (lockAcquired) {
       try {
@@ -79,16 +78,16 @@ export async function getSeasons({
         await addBackgroundJob(JOB_NAMES.STORE_SEASONS, {
           seasons: fetchedSeasonsCache,
           timestamp: now,
-          collectionPath,
-          redisPrefix: REDIS_PREFIX,
         });
       } finally {
-        await redisClient.del(REDIS_LOCK_KEY);
+        await redisClient.del(SEASONS_CONSTANTS.REDIS_LOCK_KEY);
       }
     }
   }
 
-  const indexedAtStr = await redisClient.get(REDIS_INDEXED_KEY);
+  const indexedAtStr = await redisClient.get(
+    SEASONS_CONSTANTS.REDIS_INDEXED_KEY
+  );
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
@@ -106,7 +105,7 @@ export async function getSeasons({
 
   const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
-    REDIS_INDEX,
+    SEASONS_CONSTANTS.REDIS_INDEX,
     "*",
     "RETURN",
     "1",
