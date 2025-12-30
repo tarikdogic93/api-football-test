@@ -23,9 +23,11 @@ type CountriesParams = CountriesQueryParams & {
 };
 
 const collectionPath = "countries";
+const COUNTRIES_COLLECTION = collection(db, collectionPath);
 const REDIS_INDEX = collectionPath;
 const REDIS_PREFIX = `${collectionPath}:`;
-const COUNTRIES_COLLECTION = collection(db, collectionPath);
+const REDIS_LOCK_KEY = `${collectionPath}:fetch-lock`;
+const REDIS_INDEXED_KEY = `${collectionPath}:indexed`;
 
 let fetchedCountriesCache: CountryType[] | null = null;
 
@@ -74,10 +76,8 @@ export async function getCountries({
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
 
-  const lockKey = `${collectionPath}:fetch-lock`;
-
   if (shouldFetchAPI) {
-    const lockAcquired = await redisClient.set(lockKey, "1", {
+    const lockAcquired = await redisClient.set(REDIS_LOCK_KEY, "1", {
       NX: true,
       EX: 10,
     });
@@ -93,12 +93,12 @@ export async function getCountries({
           redisPrefix: REDIS_PREFIX,
         });
       } finally {
-        await redisClient.del(lockKey);
+        await redisClient.del(REDIS_LOCK_KEY);
       }
     }
   }
 
-  const indexedAtStr = await redisClient.get(`${collectionPath}:indexed`);
+  const indexedAtStr = await redisClient.get(REDIS_INDEXED_KEY);
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
