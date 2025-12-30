@@ -1,5 +1,7 @@
 import { Worker, Job } from "bullmq";
+
 import { ensureIORedisConnected } from "@/lib/ioredis";
+import { getBackgroundQueue } from "@/lib/queue";
 import { getJobHandler } from "@/lib/job-registry";
 
 async function startWorker() {
@@ -31,11 +33,33 @@ async function startWorker() {
 
   console.log("Generic BullMQ worker started and listening for jobs...");
 
+  let shuttingDown = false;
+
   const shutdown = async () => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+
     console.log("Shutting down worker...");
+
+    const timeout = setTimeout(() => {
+      console.warn("Forced shutdown after timeout");
+      process.exit(1);
+    }, 30000);
+
+    const queue = await getBackgroundQueue();
+
+    const activeJobs = await queue.getActive();
+    if (activeJobs.length > 0) {
+      console.log(
+        `Active jobs at shutdown: ${activeJobs.map((job) => job.id).join(", ")}`
+      );
+    } else {
+      console.log("No active jobs at shutdown.");
+    }
+
     await backgroundWorker.close();
     await redisConnection.quit();
-    process.exit(0);
+    clearTimeout(timeout);
   };
 
   process.on("SIGINT", shutdown);
