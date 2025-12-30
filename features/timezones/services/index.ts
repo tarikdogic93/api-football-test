@@ -1,6 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import { JOB_NAMES } from "@/lib/constants";
+import { JOB_NAMES, TIMEZONES_CONSTANTS } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -15,12 +15,10 @@ type TimezonesParams = {
   offset: number;
 };
 
-const collectionPath = "timezones";
-const TIMEZONES_COLLECTION = collection(db, collectionPath);
-const REDIS_INDEX = collectionPath;
-const REDIS_PREFIX = `${collectionPath}:`;
-const REDIS_LOCK_KEY = `${collectionPath}:fetch-lock`;
-const REDIS_INDEXED_KEY = `${collectionPath}:indexed`;
+const TIMEZONES_COLLECTION = collection(
+  db,
+  TIMEZONES_CONSTANTS.COLLECTION_PATH
+);
 
 let fetchedTimezonesCache: string[] | null = null;
 
@@ -44,8 +42,8 @@ export async function getTimezones({
   const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
-    indexName: REDIS_INDEX,
-    prefix: REDIS_PREFIX,
+    indexName: TIMEZONES_CONSTANTS.REDIS_INDEX,
+    prefix: TIMEZONES_CONSTANTS.REDIS_PREFIX,
     schema: [["name", "TEXT", "SORTABLE"]],
   });
 
@@ -53,10 +51,14 @@ export async function getTimezones({
   const shouldFetchAPI = snapshotCheck.empty;
 
   if (shouldFetchAPI && !fetchedTimezonesCache) {
-    const lockAcquired = await redisClient.set(REDIS_LOCK_KEY, "1", {
-      NX: true,
-      EX: 10,
-    });
+    const lockAcquired = await redisClient.set(
+      TIMEZONES_CONSTANTS.REDIS_LOCK_KEY,
+      "1",
+      {
+        NX: true,
+        EX: 10,
+      }
+    );
 
     if (lockAcquired) {
       try {
@@ -65,16 +67,16 @@ export async function getTimezones({
         await addBackgroundJob(JOB_NAMES.STORE_TIMEZONES, {
           timezones: fetchedTimezonesCache,
           timestamp: now,
-          collectionPath,
-          redisPrefix: REDIS_PREFIX,
         });
       } finally {
-        await redisClient.del(REDIS_LOCK_KEY);
+        await redisClient.del(TIMEZONES_CONSTANTS.REDIS_LOCK_KEY);
       }
     }
   }
 
-  const isIndexed = await redisClient.get(REDIS_INDEXED_KEY);
+  const isIndexed = await redisClient.get(
+    TIMEZONES_CONSTANTS.REDIS_INDEXED_KEY
+  );
 
   if (!isIndexed && fetchedTimezonesCache) {
     const timezones = fetchedTimezonesCache
@@ -90,7 +92,7 @@ export async function getTimezones({
 
   const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
-    REDIS_INDEX,
+    TIMEZONES_CONSTANTS.REDIS_INDEX,
     "*",
     "RETURN",
     "1",
