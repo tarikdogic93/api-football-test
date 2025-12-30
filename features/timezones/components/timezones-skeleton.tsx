@@ -1,6 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TimezonesSkeletonProps } from "@/features/timezones/types";
+
+type TimezonesSkeletonProps = {
+  pageSize: number;
+};
 
 export default function TimezonesSkeleton({
   pageSize,

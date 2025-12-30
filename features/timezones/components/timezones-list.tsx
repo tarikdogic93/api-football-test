@@ -1,5 +1,9 @@
-import { TimezonesListProps } from "@/features/timezones/types";
+import { TimezoneType } from "@/features/timezones/types";
 import Timezone from "@/features/timezones/components/timezone";
+
+type TimezonesListProps = {
+  timezones: TimezoneType[];
+};
 
 export default function TimezonesList({ timezones }: TimezonesListProps) {
   return (

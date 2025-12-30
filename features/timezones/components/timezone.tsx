@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { TimezoneProps } from "@/features/timezones/types";
+import { TimezoneType } from "@/features/timezones/types";
+
+type TimezoneProps = TimezoneType;
 
 export default function Timezone({ name }: TimezoneProps) {
   return (
