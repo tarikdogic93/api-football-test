@@ -1,6 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import { JOB_NAMES, ONE_DAY } from "@/lib/constants";
+import { JOB_NAMES } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -19,6 +19,8 @@ const collectionPath = "timezones";
 const TIMEZONES_COLLECTION = collection(db, collectionPath);
 const REDIS_INDEX = collectionPath;
 const REDIS_PREFIX = `${collectionPath}:`;
+const REDIS_LOCK_KEY = `${collectionPath}:fetch-lock`;
+const REDIS_INDEXED_KEY = `${collectionPath}:indexed`;
 
 let fetchedTimezonesCache: string[] | null = null;
 
@@ -50,10 +52,8 @@ export async function getTimezones({
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
   const shouldFetchAPI = snapshotCheck.empty;
 
-  const lockKey = `${collectionPath}:fetch-lock`;
-
   if (shouldFetchAPI && !fetchedTimezonesCache) {
-    const lockAcquired = await redisClient.set(lockKey, "1", {
+    const lockAcquired = await redisClient.set(REDIS_LOCK_KEY, "1", {
       NX: true,
       EX: 10,
     });
@@ -69,16 +69,14 @@ export async function getTimezones({
           redisPrefix: REDIS_PREFIX,
         });
       } finally {
-        await redisClient.del(lockKey);
+        await redisClient.del(REDIS_LOCK_KEY);
       }
     }
   }
 
-  const indexedAtStr = await redisClient.get(`${collectionPath}:indexed`);
-  const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
-  const isIndexedFresh = now - indexedAt <= ONE_DAY;
+  const isIndexed = await redisClient.get(REDIS_INDEXED_KEY);
 
-  if (!isIndexedFresh && fetchedTimezonesCache) {
+  if (!isIndexed && fetchedTimezonesCache) {
     const timezones = fetchedTimezonesCache
       .slice(offset, offset + pageSize)
       .map((name) => ({ name }));
