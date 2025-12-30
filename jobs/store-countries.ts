@@ -1,12 +1,11 @@
 import { writeBatch, collection, doc } from "firebase/firestore";
 
+import { JOB_NAMES, WORLD_DOCUMENT_ID } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
 import { normalizeString } from "@/lib/utils";
 import { registerJob } from "@/lib/job-registry";
 import { CountryType } from "@/features/countries/types";
-
-const WORLD_DOCUMENT_ID = "WORLD";
 
 type StoreCountriesPayload = {
   countries: CountryType[];
@@ -53,6 +52,6 @@ async function storeCountries(
   return true;
 }
 
-registerJob("storeCountries", storeCountries);
+registerJob(JOB_NAMES.STORE_COUNTRIES, storeCountries);
 
 export default storeCountries;

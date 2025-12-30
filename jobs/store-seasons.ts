@@ -1,5 +1,6 @@
 import { writeBatch, collection, doc } from "firebase/firestore";
 
+import { JOB_NAMES } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
 import { registerJob } from "@/lib/job-registry";
@@ -39,6 +40,6 @@ async function storeSeasons(payload: StoreSeasonsPayload): Promise<boolean> {
   return true;
 }
 
-registerJob("storeSeasons", storeSeasons);
+registerJob(JOB_NAMES.STORE_SEASONS, storeSeasons);
 
 export default storeSeasons;

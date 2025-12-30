@@ -1,5 +1,6 @@
 import { writeBatch, collection, doc } from "firebase/firestore";
 
+import { JOB_NAMES } from "@/lib/constants";
 import { generateSafeDocumentId } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
@@ -44,6 +45,6 @@ async function storeTimezones(
   return true;
 }
 
-registerJob("storeTimezones", storeTimezones);
+registerJob(JOB_NAMES.STORE_TIMEZONES, storeTimezones);
 
 export default storeTimezones;
