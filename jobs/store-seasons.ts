@@ -34,7 +34,7 @@ async function storeSeasons(payload: StoreSeasonsPayload): Promise<boolean> {
 
   const redisClient = await ensureRedisConnected();
 
-  await redisClient.set("seasons:indexed", timestamp.toString());
+  await redisClient.set(`${collectionPath}:indexed`, timestamp.toString());
 
   return true;
 }

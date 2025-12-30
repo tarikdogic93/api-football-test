@@ -48,7 +48,7 @@ async function storeCountries(
   );
 
   const redisClient = await ensureRedisConnected();
-  await redisClient.set("countries:indexed", timestamp.toString());
+  await redisClient.set(`${collectionPath}:indexed`, timestamp.toString());
 
   return true;
 }

@@ -39,7 +39,7 @@ async function storeTimezones(
   );
 
   const redisClient = await ensureRedisConnected();
-  await redisClient.set("timezones:indexed", timestamp.toString());
+  await redisClient.set(`${collectionPath}:indexed`, timestamp.toString());
 
   return true;
 }

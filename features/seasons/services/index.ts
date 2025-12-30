@@ -8,15 +8,17 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
-import {
-  GetSeasonsParams,
-  SeasonsAPIResponse,
-  SeasonType,
-} from "@/features/seasons/types";
+import { SeasonsAPIResponse, SeasonType } from "@/features/seasons/types";
 
-const SEASONS_COLLECTION = collection(db, "seasons");
-const REDIS_INDEX = "seasons";
-const REDIS_PREFIX = "seasons:";
+type SeasonsParams = {
+  pageSize: number;
+  offset: number;
+};
+
+const collectionPath = "seasons";
+const REDIS_INDEX = collectionPath;
+const REDIS_PREFIX = `${collectionPath}:`;
+const SEASONS_COLLECTION = collection(db, collectionPath);
 
 let fetchedSeasonsCache: number[] | null = null;
 
@@ -38,7 +40,7 @@ export async function fetchSeasonsFromAPI(): Promise<number[]> {
 export async function getSeasons({
   pageSize,
   offset,
-}: GetSeasonsParams): Promise<SeasonsAPIResponse> {
+}: SeasonsParams): Promise<SeasonsAPIResponse> {
   const now = Date.now();
 
   const redisClient = await ensureRedisConnected();
@@ -76,8 +78,8 @@ export async function getSeasons({
 
         await addBackgroundJob("storeSeasons", {
           seasons: fetchedSeasonsCache,
-          timestamp: Date.now(),
-          collectionPath: "seasons",
+          timestamp: now,
+          collectionPath,
           redisPrefix: REDIS_PREFIX,
         });
       } finally {
@@ -86,7 +88,7 @@ export async function getSeasons({
     }
   }
 
-  const indexedAtStr = await redisClient.get("seasons:indexed");
+  const indexedAtStr = await redisClient.get(`${collectionPath}:indexed`);
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 

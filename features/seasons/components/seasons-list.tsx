@@ -1,4 +1,8 @@
-import { SeasonsListProps } from "@/features/seasons/types";
+import { SeasonType } from "@/features/seasons/types";
+
+type SeasonsListProps = {
+  seasons: SeasonType[];
+};
 
 export default function SeasonsList({ seasons }: SeasonsListProps) {
   return (

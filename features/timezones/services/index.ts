@@ -14,9 +14,10 @@ import {
   TimezoneType,
 } from "@/features/timezones/types";
 
-const TIMEZONES_COLLECTION = collection(db, "timezones");
-const REDIS_INDEX = "timezones";
-const REDIS_PREFIX = "timezones:";
+const collectionPath = "timezones";
+const TIMEZONES_COLLECTION = collection(db, collectionPath);
+const REDIS_INDEX = collectionPath;
+const REDIS_PREFIX = `${collectionPath}:`;
 
 let fetchedTimezonesCache: string[] | null = null;
 
@@ -63,7 +64,7 @@ export async function getTimezones({
         await addBackgroundJob("storeTimezones", {
           timezones: fetchedTimezonesCache,
           timestamp: now,
-          collectionPath: "timezones",
+          collectionPath,
           redisPrefix: REDIS_PREFIX,
         });
       } finally {
@@ -72,7 +73,7 @@ export async function getTimezones({
     }
   }
 
-  const indexedAtStr = await redisClient.get("timezones:indexed");
+  const indexedAtStr = await redisClient.get(`${collectionPath}:indexed`);
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 

@@ -11,10 +11,6 @@ import { normalizeString } from "@/lib/utils";
 import { addBackgroundJob } from "@/lib/queue";
 import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
-const COUNTRIES_COLLECTION = collection(db, "countries");
-const REDIS_INDEX = "countries";
-const REDIS_PREFIX = "countries:";
-
 type CountriesQueryParams = {
   nameQuery?: string;
   codeQuery?: string;
@@ -25,6 +21,11 @@ type CountriesParams = CountriesQueryParams & {
   pageSize: number;
   offset: number;
 };
+
+const collectionPath = "countries";
+const REDIS_INDEX = collectionPath;
+const REDIS_PREFIX = `${collectionPath}:`;
+const COUNTRIES_COLLECTION = collection(db, collectionPath);
 
 let fetchedCountriesCache: CountryType[] | null = null;
 
@@ -75,7 +76,7 @@ export async function getCountries({
 
   const lockKey = "countries:fetch-lock";
 
-  if (shouldFetchAPI && !fetchedCountriesCache) {
+  if (shouldFetchAPI) {
     const lockAcquired = await redisClient.set(lockKey, "1", {
       NX: true,
       EX: 10,
@@ -88,7 +89,7 @@ export async function getCountries({
         await addBackgroundJob("storeCountries", {
           countries: fetchedCountriesCache,
           timestamp: now,
-          collectionPath: "countries",
+          collectionPath,
           redisPrefix: REDIS_PREFIX,
         });
       } finally {
@@ -97,7 +98,7 @@ export async function getCountries({
     }
   }
 
-  const indexedAtStr = await redisClient.get("countries:indexed");
+  const indexedAtStr = await redisClient.get(`${collectionPath}:indexed`);
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
@@ -105,7 +106,6 @@ export async function getCountries({
     const filteredCountries = fetchedCountriesCache.filter((country) => {
       if (codeQuery && country.code?.toLowerCase() !== codeQuery.toLowerCase())
         return false;
-
       if (
         nameQuery &&
         normalizeString(country.name) !== normalizeString(nameQuery)
