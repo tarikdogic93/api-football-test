@@ -1,6 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import { ONE_DAY } from "@/lib/constants";
+import { JOB_NAMES, ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -8,11 +8,12 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
-import {
-  GetTimezonesParams,
-  TimezonesAPIResponse,
-  TimezoneType,
-} from "@/features/timezones/types";
+import { TimezonesAPIResponse, TimezoneType } from "@/features/timezones/types";
+
+type TimezonesParams = {
+  pageSize: number;
+  offset: number;
+};
 
 const collectionPath = "timezones";
 const TIMEZONES_COLLECTION = collection(db, collectionPath);
@@ -36,7 +37,7 @@ export async function fetchTimezonesFromAPI(): Promise<string[]> {
 export async function getTimezones({
   pageSize,
   offset,
-}: GetTimezonesParams): Promise<TimezonesAPIResponse> {
+}: TimezonesParams): Promise<TimezonesAPIResponse> {
   const now = Date.now();
   const redisClient = await ensureRedisConnected();
 
@@ -49,7 +50,7 @@ export async function getTimezones({
   const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
   const shouldFetchAPI = snapshotCheck.empty;
 
-  const lockKey = "timezones:fetch-lock";
+  const lockKey = `${collectionPath}:fetch-lock`;
 
   if (shouldFetchAPI && !fetchedTimezonesCache) {
     const lockAcquired = await redisClient.set(lockKey, "1", {
@@ -61,7 +62,7 @@ export async function getTimezones({
       try {
         fetchedTimezonesCache = await fetchTimezonesFromAPI();
 
-        await addBackgroundJob("storeTimezones", {
+        await addBackgroundJob(JOB_NAMES.STORE_TIMEZONES, {
           timezones: fetchedTimezonesCache,
           timestamp: now,
           collectionPath,
