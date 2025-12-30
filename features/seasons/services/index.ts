@@ -1,6 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import { ONE_DAY } from "@/lib/constants";
+import { JOB_NAMES, ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -64,7 +64,7 @@ export async function getSeasons({
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
 
-  const lockKey = "seasons:fetch-lock";
+  const lockKey = `${collectionPath}:fetch-lock`;
 
   if (shouldFetchAPI && !fetchedSeasonsCache) {
     const lockAcquired = await redisClient.set(lockKey, "1", {
@@ -76,7 +76,7 @@ export async function getSeasons({
       try {
         fetchedSeasonsCache = await fetchSeasonsFromAPI();
 
-        await addBackgroundJob("storeSeasons", {
+        await addBackgroundJob(JOB_NAMES.STORE_SEASONS, {
           seasons: fetchedSeasonsCache,
           timestamp: now,
           collectionPath,
