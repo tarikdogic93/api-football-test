@@ -1,25 +1,17 @@
-import {
-  collection,
-  doc,
-  getDocs,
-  query,
-  limit,
-  writeBatch,
-} from "firebase/firestore";
+import { collection, getDocs, query, limit } from "firebase/firestore";
 
+import { ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
   ensureIndexOnce,
-  addDocuments,
   parseRediSearchResults,
 } from "@/lib/redis";
-import { ONE_DAY } from "@/lib/constants";
 import { normalizeString } from "@/lib/utils";
+import { addBackgroundJob } from "@/lib/queue";
 import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
 const COUNTRIES_COLLECTION = collection(db, "countries");
-const WORLD_DOCUMENT_ID = "WORLD";
 const REDIS_INDEX = "countries";
 const REDIS_PREFIX = "countries:";
 
@@ -33,6 +25,8 @@ type CountriesParams = CountriesQueryParams & {
   pageSize: number;
   offset: number;
 };
+
+let fetchedCountriesCache: CountryType[] | null = null;
 
 export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
   const response = await fetch("https://v3.football.api-sports.io/countries", {
@@ -79,29 +73,62 @@ export async function getCountries({
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
 
-  if (shouldFetchAPI) {
-    const fetchedCountries = await fetchCountriesFromAPI();
-    const batch = writeBatch(db);
+  const lockKey = "countries:fetch-lock";
 
-    for (const country of fetchedCountries) {
-      const documentId = country.code ?? WORLD_DOCUMENT_ID;
-      batch.set(doc(COUNTRIES_COLLECTION, documentId), {
-        ...country,
-        updatedAt: now,
-      });
+  if (shouldFetchAPI && !fetchedCountriesCache) {
+    const lockAcquired = await redisClient.set(lockKey, "1", {
+      NX: true,
+      EX: 10,
+    });
+
+    if (lockAcquired) {
+      try {
+        fetchedCountriesCache = await fetchCountriesFromAPI();
+
+        await addBackgroundJob("storeCountries", {
+          countries: fetchedCountriesCache,
+          timestamp: now,
+          collectionPath: "countries",
+          redisPrefix: REDIS_PREFIX,
+        });
+      } finally {
+        await redisClient.del(lockKey);
+      }
     }
-    await batch.commit();
+  }
 
-    await addDocuments(
-      REDIS_PREFIX,
-      fetchedCountries.map((country) => ({
-        ...country,
-        code: country.code ?? WORLD_DOCUMENT_ID,
-        name_exact: normalizeString(country.name),
-        name_search: normalizeString(country.name),
-      })),
-      "code"
+  const indexedAtStr = await redisClient.get("countries:indexed");
+  const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
+  const isIndexedFresh = now - indexedAt <= ONE_DAY;
+
+  if (!isIndexedFresh && fetchedCountriesCache) {
+    const filteredCountries = fetchedCountriesCache.filter((country) => {
+      if (codeQuery && country.code?.toLowerCase() !== codeQuery.toLowerCase())
+        return false;
+
+      if (
+        nameQuery &&
+        normalizeString(country.name) !== normalizeString(nameQuery)
+      )
+        return false;
+      if (
+        searchQuery &&
+        !normalizeString(country.name).includes(normalizeString(searchQuery))
+      )
+        return false;
+      return true;
+    });
+
+    const paginatedCountries = filteredCountries.slice(
+      offset,
+      offset + pageSize
     );
+
+    return {
+      countries: paginatedCountries,
+      total: filteredCountries.length,
+      offset: offset + paginatedCountries.length,
+    };
   }
 
   const filters: string[] = [];
@@ -148,6 +175,8 @@ export async function getCountries({
     code: hit["$.code"],
     flag: hit["$.flag"],
   }));
+
+  if (fetchedCountriesCache) fetchedCountriesCache = null;
 
   return {
     countries: hits,
