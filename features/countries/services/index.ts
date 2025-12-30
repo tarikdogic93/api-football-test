@@ -1,6 +1,6 @@
 import { collection, getDocs, query, limit } from "firebase/firestore";
 
-import { ONE_DAY } from "@/lib/constants";
+import { JOB_NAMES, ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -74,7 +74,7 @@ export async function getCountries({
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
 
-  const lockKey = "countries:fetch-lock";
+  const lockKey = `${collectionPath}:fetch-lock`;
 
   if (shouldFetchAPI) {
     const lockAcquired = await redisClient.set(lockKey, "1", {
@@ -86,7 +86,7 @@ export async function getCountries({
       try {
         fetchedCountriesCache = await fetchCountriesFromAPI();
 
-        await addBackgroundJob("storeCountries", {
+        await addBackgroundJob(JOB_NAMES.STORE_COUNTRIES, {
           countries: fetchedCountriesCache,
           timestamp: now,
           collectionPath,
