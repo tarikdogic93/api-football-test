@@ -72,6 +72,9 @@ export default function CountriesPage() {
         const params = new URLSearchParams();
         const offset = (currentPage - 1) * pageSize;
 
+        params.set("pageSize", pageSize.toString());
+        params.set("offset", offset.toString());
+
         if (queryParams.name) params.set("name", queryParams.name);
         if (queryParams.code) params.set("code", queryParams.code);
         if (queryParams.search) params.set("search", queryParams.search);
