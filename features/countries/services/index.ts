@@ -1,6 +1,6 @@
 import { collection, getDocs, query, limit } from "firebase/firestore";
 
-import { JOB_NAMES, ONE_DAY } from "@/lib/constants";
+import { COUNTRIES_CONSTANTS, JOB_NAMES, ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -22,12 +22,10 @@ type CountriesParams = CountriesQueryParams & {
   offset: number;
 };
 
-const collectionPath = "countries";
-const COUNTRIES_COLLECTION = collection(db, collectionPath);
-const REDIS_INDEX = collectionPath;
-const REDIS_PREFIX = `${collectionPath}:`;
-const REDIS_LOCK_KEY = `${collectionPath}:fetch-lock`;
-const REDIS_INDEXED_KEY = `${collectionPath}:indexed`;
+const COUNTRIES_COLLECTION = collection(
+  db,
+  COUNTRIES_CONSTANTS.COLLECTION_PATH
+);
 
 let fetchedCountriesCache: CountryType[] | null = null;
 
@@ -55,8 +53,8 @@ export async function getCountries({
   const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
-    indexName: REDIS_INDEX,
-    prefix: REDIS_PREFIX,
+    indexName: COUNTRIES_CONSTANTS.REDIS_INDEX,
+    prefix: COUNTRIES_CONSTANTS.REDIS_PREFIX,
     schema: [
       ["code", "TAG"],
       ["name_exact", "TAG"],
@@ -77,10 +75,14 @@ export async function getCountries({
   }
 
   if (shouldFetchAPI) {
-    const lockAcquired = await redisClient.set(REDIS_LOCK_KEY, "1", {
-      NX: true,
-      EX: 10,
-    });
+    const lockAcquired = await redisClient.set(
+      COUNTRIES_CONSTANTS.REDIS_LOCK_KEY,
+      "1",
+      {
+        NX: true,
+        EX: 10,
+      }
+    );
 
     if (lockAcquired) {
       try {
@@ -89,16 +91,16 @@ export async function getCountries({
         await addBackgroundJob(JOB_NAMES.STORE_COUNTRIES, {
           countries: fetchedCountriesCache,
           timestamp: now,
-          collectionPath,
-          redisPrefix: REDIS_PREFIX,
         });
       } finally {
-        await redisClient.del(REDIS_LOCK_KEY);
+        await redisClient.del(COUNTRIES_CONSTANTS.REDIS_LOCK_KEY);
       }
     }
   }
 
-  const indexedAtStr = await redisClient.get(REDIS_INDEXED_KEY);
+  const indexedAtStr = await redisClient.get(
+    COUNTRIES_CONSTANTS.REDIS_INDEXED_KEY
+  );
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
@@ -149,7 +151,7 @@ export async function getCountries({
 
   const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
-    REDIS_INDEX,
+    COUNTRIES_CONSTANTS.REDIS_INDEX,
     searchQueryString,
     "LIMIT",
     offset.toString(),

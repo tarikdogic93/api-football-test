@@ -1,6 +1,10 @@
 import { writeBatch, collection, doc } from "firebase/firestore";
 
-import { JOB_NAMES, WORLD_DOCUMENT_ID } from "@/lib/constants";
+import {
+  COUNTRIES_CONSTANTS,
+  JOB_NAMES,
+  WORLD_DOCUMENT_ID,
+} from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
 import { normalizeString } from "@/lib/utils";
@@ -10,18 +14,16 @@ import { CountryType } from "@/features/countries/types";
 type StoreCountriesPayload = {
   countries: CountryType[];
   timestamp: number | string;
-  collectionPath: string;
-  redisPrefix: string;
 };
 
 async function storeCountries(
   payload: StoreCountriesPayload
 ): Promise<boolean> {
-  const { countries, timestamp, collectionPath, redisPrefix } = payload;
+  const { countries, timestamp } = payload;
 
   if (!countries || countries.length === 0) return true;
 
-  const collectionRef = collection(db, collectionPath);
+  const collectionRef = collection(db, COUNTRIES_CONSTANTS.COLLECTION_PATH);
   const batch = writeBatch(db);
 
   for (const country of countries) {
@@ -36,7 +38,7 @@ async function storeCountries(
   await batch.commit();
 
   await addDocuments(
-    redisPrefix,
+    COUNTRIES_CONSTANTS.REDIS_PREFIX,
     countries.map((country) => ({
       ...country,
       code: country.code ?? WORLD_DOCUMENT_ID,
@@ -47,7 +49,10 @@ async function storeCountries(
   );
 
   const redisClient = await ensureRedisConnected();
-  await redisClient.set(`${collectionPath}:indexed`, timestamp.toString());
+  await redisClient.set(
+    COUNTRIES_CONSTANTS.REDIS_INDEXED_KEY,
+    timestamp.toString()
+  );
 
   return true;
 }
