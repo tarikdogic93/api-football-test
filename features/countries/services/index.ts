@@ -7,7 +7,7 @@ import {
   ensureIndexOnce,
   parseRediSearchResults,
 } from "@/lib/redis";
-import { normalizeString } from "@/lib/utils";
+import { exactKey, normalizeString } from "@/lib/utils";
 import { addBackgroundJob } from "@/lib/queue";
 import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
@@ -140,7 +140,7 @@ export async function getCountries({
   }
 
   if (nameQuery) {
-    filters.push(`@name_exact:{${normalizeString(nameQuery)}}`);
+    filters.push(`@name_exact:{${exactKey(nameQuery)}}`);
   }
 
   if (searchQuery) {

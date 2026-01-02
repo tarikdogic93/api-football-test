@@ -7,7 +7,7 @@ import {
 } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
-import { normalizeString } from "@/lib/utils";
+import { exactKey, normalizeString } from "@/lib/utils";
 import { registerJob } from "@/lib/job-registry";
 import { CountryType } from "@/features/countries/types";
 
@@ -42,7 +42,7 @@ async function storeCountries(
     countries.map((country) => ({
       ...country,
       code: country.code ?? WORLD_DOCUMENT_ID,
-      name_exact: normalizeString(country.name),
+      name_exact: exactKey(country.name),
       name_search: normalizeString(country.name),
     })),
     "code"
