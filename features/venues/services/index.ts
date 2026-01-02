@@ -4,26 +4,24 @@ import {
   getDocs,
   limit,
   query,
-  writeBatch,
   getDoc,
   where,
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { ONE_DAY } from "@/lib/constants";
-import { normalizeString } from "@/lib/utils";
+import { JOB_NAMES, ONE_DAY, VENUES_CONSTANTS } from "@/lib/constants";
+import { exactKey, getQueryIndexedKey, normalizeString } from "@/lib/utils";
 import {
   ensureRedisConnected,
   ensureIndexOnce,
-  addDocuments,
   parseRediSearchResults,
 } from "@/lib/redis";
+import { addBackgroundJob } from "@/lib/queue";
 import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 
-const VENUES_COLLECTION = collection(db, "venues");
-const REDIS_INDEX = "venues";
-const REDIS_PREFIX = "venues:";
+const VENUES_COLLECTION = collection(db, VENUES_CONSTANTS.COLLECTION_PATH);
 
+let fetchedVenuesCache: VenueType[] | null = null;
 let lastFetchedQuerySignature: string | null = null;
 
 type VenuesQueryParams = {
@@ -42,10 +40,14 @@ type VenuesParams = VenuesQueryParams & {
 function buildVenuesQuerySignature(params: VenuesQueryParams) {
   return JSON.stringify({
     idQuery: params.idQuery ?? null,
-    nameQuery: params.nameQuery ?? null,
-    cityQuery: params.cityQuery ?? null,
-    countryQuery: params.countryQuery ?? null,
-    searchQuery: params.searchQuery ?? null,
+    nameQuery: params.nameQuery ? normalizeString(params.nameQuery) : null,
+    cityQuery: params.cityQuery ? normalizeString(params.cityQuery) : null,
+    countryQuery: params.countryQuery
+      ? normalizeString(params.countryQuery)
+      : null,
+    searchQuery: params.searchQuery
+      ? normalizeString(params.searchQuery)
+      : null,
   });
 }
 
@@ -82,8 +84,8 @@ export async function getVenues({
   const redisClient = await ensureRedisConnected();
 
   await ensureIndexOnce({
-    indexName: REDIS_INDEX,
-    prefix: REDIS_PREFIX,
+    indexName: VENUES_CONSTANTS.REDIS_INDEX,
+    prefix: VENUES_CONSTANTS.REDIS_PREFIX,
     schema: [
       ["id", "TAG"],
       ["name_exact", "TAG"],
@@ -103,24 +105,18 @@ export async function getVenues({
     searchQuery,
   });
 
-  let shouldFetchAPI = lastFetchedQuerySignature !== currentQuerySignature;
+  let isStale = false;
 
-  if (!shouldFetchAPI) {
-    const snapshotCheck = await getDocs(query(VENUES_COLLECTION, limit(1)));
-    if (snapshotCheck.empty) shouldFetchAPI = true;
-  }
-
-  if (!shouldFetchAPI && idQuery) {
+  if (idQuery) {
     const venueDoc = await getDoc(doc(VENUES_COLLECTION, idQuery));
-    if (!venueDoc.exists()) shouldFetchAPI = true;
+    if (!venueDoc.exists()) isStale = true;
     else {
       const data = venueDoc.data() as VenueType & { updatedAt?: number };
-      if (!data.updatedAt || now - data.updatedAt > ONE_DAY)
-        shouldFetchAPI = true;
+      if (!data.updatedAt || now - data.updatedAt > ONE_DAY) isStale = true;
     }
   }
 
-  if (!shouldFetchAPI && nameQuery) {
+  if (nameQuery) {
     const lowerNameQuery = nameQuery.toLowerCase();
     const snapshot = await getDocs(
       query(
@@ -134,58 +130,104 @@ export async function getVenues({
       !snapshot.docs[0].data().updatedAt ||
       now - snapshot.docs[0].data().updatedAt > ONE_DAY
     ) {
-      shouldFetchAPI = true;
+      isStale = true;
     }
   }
 
-  let fetchedVenues: VenueType[] = [];
+  const isIdentityQuery = Boolean(idQuery || nameQuery);
+
+  const shouldFetchAPI = isIdentityQuery
+    ? isStale
+    : lastFetchedQuerySignature !== currentQuerySignature;
 
   if (shouldFetchAPI) {
-    fetchedVenues = await fetchVenuesFromAPI({
-      idQuery,
-      nameQuery,
-      cityQuery,
-      countryQuery,
-      searchQuery,
+    const lockAcquired = await redisClient.set(
+      VENUES_CONSTANTS.REDIS_LOCK_KEY,
+      "1",
+      {
+        NX: true,
+        EX: 10,
+      }
+    );
+
+    if (lockAcquired) {
+      try {
+        fetchedVenuesCache = await fetchVenuesFromAPI({
+          idQuery,
+          nameQuery,
+          cityQuery,
+          countryQuery,
+          searchQuery,
+        });
+
+        if (fetchedVenuesCache.length > 0) {
+          await addBackgroundJob(JOB_NAMES.STORE_VENUES, {
+            venues: fetchedVenuesCache,
+            timestamp: now,
+            querySignature: currentQuerySignature,
+          });
+
+          lastFetchedQuerySignature = currentQuerySignature;
+        }
+      } finally {
+        await redisClient.del(VENUES_CONSTANTS.REDIS_LOCK_KEY);
+      }
+    }
+  }
+
+  const queryIndexedKey = getQueryIndexedKey(
+    VENUES_CONSTANTS.REDIS_INDEXED_KEY,
+    currentQuerySignature
+  );
+  const indexedAtStr = await redisClient.get(queryIndexedKey);
+  const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
+  const isIndexedFresh = now - indexedAt <= ONE_DAY;
+
+  if (!isIndexedFresh && fetchedVenuesCache) {
+    const filteredVenues = fetchedVenuesCache.filter((venue) => {
+      if (idQuery && String(venue.id) !== idQuery) return false;
+      if (
+        nameQuery &&
+        normalizeString(venue.name) !== normalizeString(nameQuery)
+      )
+        return false;
+      if (
+        cityQuery &&
+        normalizeString(venue.city) !== normalizeString(cityQuery)
+      )
+        return false;
+      if (
+        countryQuery &&
+        normalizeString(venue.country) !== normalizeString(countryQuery)
+      )
+        return false;
+      if (
+        searchQuery &&
+        !(
+          normalizeString(venue.name).includes(normalizeString(searchQuery)) ||
+          normalizeString(venue.city).includes(normalizeString(searchQuery)) ||
+          normalizeString(venue.country).includes(normalizeString(searchQuery))
+        )
+      )
+        return false;
+      return true;
     });
 
-    if (fetchedVenues.length > 0) {
-      const batch = writeBatch(db);
-      for (const venue of fetchedVenues) {
-        batch.set(doc(VENUES_COLLECTION, String(venue.id)), {
-          ...venue,
-          nameLower: venue.name?.toLowerCase() || null,
-          updatedAt: now,
-        });
-      }
-      await batch.commit();
+    const paginatedVenues = filteredVenues.slice(offset, offset + pageSize);
 
-      await addDocuments(
-        REDIS_PREFIX,
-        fetchedVenues.map((venue) => ({
-          ...venue,
-          id: String(venue.id),
-          name_exact: normalizeString(venue.name),
-          city_exact: normalizeString(venue.city),
-          country_exact: normalizeString(venue.country),
-          name_search: normalizeString(venue.name),
-          city_search: normalizeString(venue.city),
-          country_search: normalizeString(venue.country),
-        })),
-        "id"
-      );
-
-      lastFetchedQuerySignature = currentQuerySignature;
-    }
+    return {
+      venues: paginatedVenues,
+      total: filteredVenues.length,
+      offset: offset + paginatedVenues.length,
+    };
   }
 
   const filters: string[] = [];
 
-  if (idQuery) filters.push(`@id:{${idQuery.toLowerCase()}}`);
-  if (nameQuery) filters.push(`@name_exact:{${normalizeString(nameQuery)}}`);
-  if (cityQuery) filters.push(`@city_exact:{${normalizeString(cityQuery)}}`);
-  if (countryQuery)
-    filters.push(`@country_exact:{${normalizeString(countryQuery)}}`);
+  if (idQuery) filters.push(`@id:{${idQuery}}`);
+  if (nameQuery) filters.push(`@name_exact:{${exactKey(nameQuery)}}`);
+  if (cityQuery) filters.push(`@city_exact:{${exactKey(cityQuery)}}`);
+  if (countryQuery) filters.push(`@country_exact:{${exactKey(countryQuery)}}`);
 
   if (searchQuery)
     filters.push(
@@ -198,7 +240,7 @@ export async function getVenues({
 
   const searchResult = (await redisClient.sendCommand([
     "FT.SEARCH",
-    REDIS_INDEX,
+    VENUES_CONSTANTS.REDIS_INDEX,
     searchQueryString,
     "LIMIT",
     offset.toString(),
@@ -243,6 +285,8 @@ export async function getVenues({
     surface: hit["$.surface"],
     image: hit["$.image"],
   }));
+
+  if (fetchedVenuesCache) fetchedVenuesCache = null;
 
   return {
     venues: hits,
