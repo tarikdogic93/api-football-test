@@ -35,3 +35,11 @@ export const COUNTRIES_CONSTANTS = {
   REDIS_LOCK_KEY: "countries:fetch-lock",
   REDIS_INDEXED_KEY: "countries:indexed",
 } as const;
+
+export const VENUES_CONSTANTS = {
+  COLLECTION_PATH: "venues",
+  REDIS_PREFIX: "venues:",
+  REDIS_INDEX: "venues",
+  REDIS_LOCK_KEY: "venues:fetch-lock",
+  REDIS_INDEXED_KEY: "venues:indexed",
+} as const;
