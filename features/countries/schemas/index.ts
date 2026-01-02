@@ -23,19 +23,6 @@ export const searchCountriesSchema = z
       });
     }
 
-    const nameField = nonEmptyFields.find((field) => field.key === "name");
-    if (nameField) {
-      const nameValue = nameField.value!.trim();
-      if (!/^[a-zA-Z0-9 ]+$/.test(nameValue)) {
-        ctx.addIssue({
-          code: "custom",
-          message:
-            "Name can only include standard letters, numbers, and spaces (no accents or symbols)",
-          path: ["name"],
-        });
-      }
-    }
-
     const codeField = nonEmptyFields.find((field) => field.key === "code");
     if (codeField) {
       const codeValue = codeField.value!.trim();
