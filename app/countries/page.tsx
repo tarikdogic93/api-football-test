@@ -129,6 +129,7 @@ export default function CountriesPage() {
                       form.setValue("search", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -152,6 +153,7 @@ export default function CountriesPage() {
                       form.setValue("search", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -175,6 +177,7 @@ export default function CountriesPage() {
                       form.setValue("code", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -182,7 +185,7 @@ export default function CountriesPage() {
             )}
           />
 
-          <Button type="submit" className="cursor-pointer">
+          <Button type="submit" className="cursor-pointer" disabled={loading}>
             Search
           </Button>
         </form>
