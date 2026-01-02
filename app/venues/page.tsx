@@ -21,6 +21,7 @@ import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 import { searchVenuesSchema } from "@/features/venues/schemas";
 import VenuesSkeleton from "@/features/venues/components/venues-skeleton";
 import VenuesList from "@/features/venues/components/venues-list";
+import CountriesCombobox from "@/components/countries-combobox";
 
 type SearchFormValues = z.infer<typeof searchVenuesSchema>;
 
@@ -145,6 +146,7 @@ export default function VenuesPage() {
                       form.setValue("search", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -170,6 +172,7 @@ export default function VenuesPage() {
                       form.setValue("search", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -195,6 +198,7 @@ export default function VenuesPage() {
                       form.setValue("search", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -208,18 +212,17 @@ export default function VenuesPage() {
             render={({ field }) => (
               <FormItem className="w-full md:w-1/5">
                 <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Exact country..."
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
+                  <CountriesCombobox
+                    value={field.value || ""}
+                    onChange={(value) => {
+                      field.onChange(value);
                       form.setValue("id", "");
                       form.setValue("name", "");
                       form.setValue("city", "");
                       form.setValue("search", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -245,6 +248,7 @@ export default function VenuesPage() {
                       form.setValue("country", "");
                       form.trigger();
                     }}
+                    disabled={loading}
                   />
                 </FormControl>
                 <FormMessage />
@@ -252,7 +256,7 @@ export default function VenuesPage() {
             )}
           />
 
-          <Button type="submit" className="cursor-pointer">
+          <Button type="submit" className="cursor-pointer" disabled={loading}>
             Search
           </Button>
         </form>
