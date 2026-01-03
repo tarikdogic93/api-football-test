@@ -39,6 +39,10 @@ export default function CountriesCombobox({
   const [totalCountries, setTotalCountries] = useState(0);
   const [currentOffset, setCurrentOffset] = useState(0);
 
+  const [selectedCountry, setSelectedCountry] = useState<CountryType | null>(
+    null
+  );
+
   const listContainerRef = useRef<HTMLDivElement>(null);
   const hasSearchedRef = useRef(false);
 
@@ -129,9 +133,19 @@ export default function CountriesCombobox({
     return () => clearTimeout(debounce);
   }, [searchTerm, isOpen]);
 
-  const selectedCountryData = countriesList.find(
-    (country) => country.name === value
-  );
+  useEffect(() => {
+    if (!value) {
+      setSelectedCountry(null);
+      return;
+    }
+
+    if (selectedCountry?.name === value) return;
+
+    const match = countriesList.find((country) => country.name === value);
+    if (match) {
+      setSelectedCountry(match);
+    }
+  }, [value, countriesList, selectedCountry]);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -144,10 +158,10 @@ export default function CountriesCombobox({
         >
           {value ? (
             <div className="flex items-center gap-2 min-w-0">
-              {selectedCountryData?.flag && (
+              {selectedCountry?.flag && (
                 <div className="relative w-5 h-4 shrink-0">
                   <Image
-                    src={selectedCountryData.flag}
+                    src={selectedCountry.flag}
                     alt={value}
                     fill
                     className="object-cover"
@@ -162,6 +176,7 @@ export default function CountriesCombobox({
           <ChevronDown className="text-muted-foreground/80 shrink-0" />
         </Button>
       </PopoverTrigger>
+
       <PopoverContent
         className="border-input w-(--radix-popper-anchor-width) p-0"
         align="start"
@@ -172,6 +187,7 @@ export default function CountriesCombobox({
             value={searchTerm}
             onValueChange={setSearchTerm}
           />
+
           <CommandList
             ref={listContainerRef}
             onScroll={handleScroll}
@@ -182,12 +198,14 @@ export default function CountriesCombobox({
                 No country found.
               </CommandEmpty>
             )}
+
             {countriesList.map((country) => (
               <CommandItem
                 key={country.code}
                 value={country.name}
                 onSelect={(selectedValue) => {
                   onChange(selectedValue);
+                  setSelectedCountry(country);
                   setIsOpen(false);
                 }}
               >
