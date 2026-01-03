@@ -8,7 +8,11 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
-import { SeasonsAPIResponse, SeasonType } from "@/features/seasons/types";
+import {
+  ExtendedSeasonType,
+  SeasonsAPIResponse,
+  SeasonType,
+} from "@/features/seasons/types";
 
 type SeasonsParams = {
   pageSize: number;
@@ -54,9 +58,7 @@ export async function getSeasons({
   if (snapshotCheck.empty) {
     shouldFetchAPI = true;
   } else {
-    const firstDoc = snapshotCheck.docs[0].data() as SeasonType & {
-      updatedAt?: number;
-    };
+    const firstDoc = snapshotCheck.docs[0].data() as ExtendedSeasonType;
 
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
