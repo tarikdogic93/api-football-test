@@ -17,7 +17,11 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
-import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
+import {
+  ExtendedVenueType,
+  VenuesAPIResponse,
+  VenueType,
+} from "@/features/venues/types";
 
 const VENUES_COLLECTION = collection(db, VENUES_CONSTANTS.COLLECTION_PATH);
 
@@ -105,23 +109,25 @@ export async function getVenues({
     searchQuery,
   });
 
+  const isSameQueryAsLastTime =
+    lastFetchedQuerySignature === currentQuerySignature;
+
   let isStale = false;
 
-  if (idQuery) {
+  if (!isSameQueryAsLastTime && idQuery) {
     const venueDoc = await getDoc(doc(VENUES_COLLECTION, idQuery));
     if (!venueDoc.exists()) isStale = true;
     else {
-      const data = venueDoc.data() as VenueType & { updatedAt?: number };
+      const data = venueDoc.data() as ExtendedVenueType;
       if (!data.updatedAt || now - data.updatedAt > ONE_DAY) isStale = true;
     }
   }
 
-  if (nameQuery) {
-    const lowerNameQuery = nameQuery.toLowerCase();
+  if (!isSameQueryAsLastTime && nameQuery) {
     const snapshot = await getDocs(
       query(
         VENUES_COLLECTION,
-        where("nameLower", "==", lowerNameQuery),
+        where("nameLower", "==", normalizeString(nameQuery)),
         limit(1)
       )
     );
@@ -134,11 +140,58 @@ export async function getVenues({
     }
   }
 
-  const isIdentityQuery = Boolean(idQuery || nameQuery);
+  if (!isSameQueryAsLastTime && cityQuery) {
+    const snapshot = await getDocs(
+      query(
+        VENUES_COLLECTION,
+        where("queriedCity", "==", normalizeString(cityQuery)),
+        limit(1)
+      )
+    );
+    if (
+      snapshot.empty ||
+      !snapshot.docs[0].data().updatedAt ||
+      now - snapshot.docs[0].data().updatedAt > ONE_DAY
+    ) {
+      isStale = true;
+    }
+  }
 
-  const shouldFetchAPI = isIdentityQuery
-    ? isStale
-    : lastFetchedQuerySignature !== currentQuerySignature;
+  if (!isSameQueryAsLastTime && countryQuery) {
+    const snapshot = await getDocs(
+      query(
+        VENUES_COLLECTION,
+        where("queriedCountry", "==", normalizeString(countryQuery)),
+        limit(1)
+      )
+    );
+    if (
+      snapshot.empty ||
+      !snapshot.docs[0].data().updatedAt ||
+      now - snapshot.docs[0].data().updatedAt > ONE_DAY
+    ) {
+      isStale = true;
+    }
+  }
+
+  if (!isSameQueryAsLastTime && searchQuery) {
+    const snapshot = await getDocs(
+      query(
+        VENUES_COLLECTION,
+        where("queriedSearch", "array-contains", normalizeString(searchQuery)),
+        limit(1)
+      )
+    );
+    if (
+      snapshot.empty ||
+      !snapshot.docs[0].data().updatedAt ||
+      now - snapshot.docs[0].data().updatedAt > ONE_DAY
+    ) {
+      isStale = true;
+    }
+  }
+
+  const shouldFetchAPI = !isSameQueryAsLastTime && isStale;
 
   if (shouldFetchAPI) {
     const lockAcquired = await redisClient.set(
@@ -161,10 +214,22 @@ export async function getVenues({
         });
 
         if (fetchedVenuesCache.length > 0) {
+          const queryType = cityQuery
+            ? "city"
+            : countryQuery
+            ? "country"
+            : searchQuery
+            ? "search"
+            : null;
+
+          const queryValue = cityQuery ?? countryQuery ?? searchQuery ?? null;
+
           await addBackgroundJob(JOB_NAMES.STORE_VENUES, {
             venues: fetchedVenuesCache,
             timestamp: now,
             querySignature: currentQuerySignature,
+            queryType,
+            queryValue,
           });
 
           lastFetchedQuerySignature = currentQuerySignature;
@@ -228,7 +293,6 @@ export async function getVenues({
   if (nameQuery) filters.push(`@name_exact:{${exactKey(nameQuery)}}`);
   if (cityQuery) filters.push(`@city_exact:{${exactKey(cityQuery)}}`);
   if (countryQuery) filters.push(`@country_exact:{${exactKey(countryQuery)}}`);
-
   if (searchQuery)
     filters.push(
       `(@name_search|city_search|country_search:*${normalizeString(
