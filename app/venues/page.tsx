@@ -102,7 +102,7 @@ export default function VenuesPage() {
         setVenues(json.venues);
         setTotal(json.total ?? 0);
       } catch {
-        setError("Could not load venue data.");
+        setError("Could not load venues");
       } finally {
         setLoading(false);
       }
@@ -266,7 +266,7 @@ export default function VenuesPage() {
         {isQueryEmpty ? (
           <div className="h-full flex items-center justify-center">
             <p className="text-muted-foreground">
-              Please use the input fields above to search for venues.
+              Please use the input fields above to search for venues
             </p>
           </div>
         ) : loading ? (
@@ -277,7 +277,7 @@ export default function VenuesPage() {
               <p className="text-destructive">{error}</p>
             ) : (
               <p className="text-muted-foreground">
-                No venues were found matching your search.
+                No venues were found matching your search
               </p>
             )}
           </div>
