@@ -8,7 +8,7 @@ import { registerJob } from "@/lib/job-registry";
 
 type StoreTimezonesPayload = {
   timezones: string[];
-  timestamp: number | string;
+  timestamp: number;
 };
 
 async function storeTimezones(

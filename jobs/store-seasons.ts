@@ -7,7 +7,7 @@ import { registerJob } from "@/lib/job-registry";
 
 type StoreSeasonsPayload = {
   seasons: number[];
-  timestamp: number | string;
+  timestamp: number;
 };
 
 async function storeSeasons(payload: StoreSeasonsPayload): Promise<boolean> {

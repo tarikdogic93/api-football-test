@@ -13,7 +13,7 @@ import { CountryType } from "@/features/countries/types";
 
 type StoreCountriesPayload = {
   countries: CountryType[];
-  timestamp: number | string;
+  timestamp: number;
 };
 
 async function storeCountries(
