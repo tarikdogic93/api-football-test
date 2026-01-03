@@ -39,7 +39,7 @@ export default function TimezonesPage() {
         setTimezones(json.timezones);
         setTotal(json.total);
       } catch (err) {
-        setError("Could not load timezones.");
+        setError("Could not load timezones");
       } finally {
         setLoading(false);
       }
@@ -70,7 +70,7 @@ export default function TimezonesPage() {
             {error ? (
               <p className="text-destructive">{error}</p>
             ) : (
-              <p className="text-muted-foreground">No timezones available.</p>
+              <p className="text-muted-foreground">No timezones were found</p>
             )}
           </div>
         ) : (
