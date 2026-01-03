@@ -87,7 +87,7 @@ export default function CountriesPage() {
         setCountries(json.countries);
         setTotal(json.total);
       } catch (err) {
-        setError("Could not load country data.");
+        setError("Could not load countries");
       } finally {
         setLoading(false);
       }
@@ -200,7 +200,7 @@ export default function CountriesPage() {
               <p className="text-destructive">{error}</p>
             ) : (
               <p className="text-muted-foreground">
-                No countries were found matching your search.
+                No countries were found matching your search
               </p>
             )}
           </div>
