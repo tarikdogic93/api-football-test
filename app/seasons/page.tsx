@@ -31,14 +31,14 @@ export default function SeasonsPage() {
           offset: String(offset),
         });
 
-        const res = await fetch(`/api/seasons?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch seasons");
+        const response = await fetch(`/api/seasons?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch seasons");
 
-        const json: SeasonsAPIResponse = await res.json();
+        const json: SeasonsAPIResponse = await response.json();
 
         setSeasons(json.seasons);
         setTotal(json.total);
-      } catch (err) {
+      } catch {
         setError("Could not load seasons");
       } finally {
         setLoading(false);
