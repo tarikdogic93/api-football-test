@@ -9,7 +9,11 @@ import {
 } from "@/lib/redis";
 import { exactKey, normalizeString } from "@/lib/utils";
 import { addBackgroundJob } from "@/lib/queue";
-import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
+import {
+  CountryType,
+  CountriesAPIResponse,
+  ExtendedCountryType,
+} from "@/features/countries/types";
 
 type CountriesQueryParams = {
   nameQuery?: string;
@@ -68,9 +72,7 @@ export async function getCountries({
   if (snapshotCheck.empty) {
     shouldFetchAPI = true;
   } else {
-    const firstDoc = snapshotCheck.docs[0].data() as CountryType & {
-      updatedAt?: number;
-    };
+    const firstDoc = snapshotCheck.docs[0].data() as ExtendedCountryType;
     shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
   }
 
