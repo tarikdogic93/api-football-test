@@ -33,12 +33,11 @@ export default function CountriesCombobox({
   disabled,
 }: CountriesComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [countriesList, setCountriesList] = useState<CountryType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalCountries, setTotalCountries] = useState(0);
   const [currentOffset, setCurrentOffset] = useState(0);
-
   const [selectedCountry, setSelectedCountry] = useState<CountryType | null>(
     null
   );
@@ -92,9 +91,11 @@ export default function CountriesCombobox({
     const container = listContainerRef.current;
     if (!container || isLoading) return;
 
+    const threshold = 8;
+
     if (
-      container.scrollTop + container.clientHeight ===
-      container.scrollHeight
+      container.scrollTop + container.clientHeight >=
+      container.scrollHeight - threshold
     ) {
       if (countriesList.length < totalCountries) {
         fetchCountries();
@@ -111,9 +112,7 @@ export default function CountriesCombobox({
         return;
       }
 
-      if (!searchTerm) {
-        return;
-      }
+      if (!searchTerm) return;
 
       hasSearchedRef.current = true;
 
@@ -147,6 +146,9 @@ export default function CountriesCombobox({
     }
   }, [value, countriesList, selectedCountry]);
 
+  const isInitialLoading = isLoading && countriesList.length === 0;
+  const isLoadingMore = isLoading && countriesList.length > 0;
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -154,7 +156,7 @@ export default function CountriesCombobox({
           variant="outline"
           role="combobox"
           disabled={disabled}
-          className="min-w-0 bg-background hover:bg-background border-input justify-between px-3 font-normal outline-offset-0 outline-none focus-visible:outline-[3px]"
+          className="min-w-0 bg-background hover:bg-background border-input justify-between px-3 font-normal"
         >
           {value ? (
             <div className="flex items-center gap-2 min-w-0">
@@ -193,7 +195,13 @@ export default function CountriesCombobox({
             onScroll={handleScroll}
             className="max-h-60 overflow-y-auto"
           >
-            {countriesList.length === 0 && !isLoading && (
+            {isInitialLoading && (
+              <div className="px-2 py-1.5 text-center text-sm text-muted-foreground">
+                Loading...
+              </div>
+            )}
+
+            {!isLoading && countriesList.length === 0 && (
               <CommandEmpty className="px-2 py-1.5">
                 No country found.
               </CommandEmpty>
@@ -201,7 +209,7 @@ export default function CountriesCombobox({
 
             {countriesList.map((country) => (
               <CommandItem
-                key={country.code}
+                key={`${country.code}-${country.name}`}
                 value={country.name}
                 onSelect={(selectedValue) => {
                   onChange(selectedValue);
@@ -225,6 +233,12 @@ export default function CountriesCombobox({
                 )}
               </CommandItem>
             ))}
+
+            {isLoadingMore && (
+              <div className="px-2 py-1.5 text-center text-sm text-muted-foreground">
+                Loading more...
+              </div>
+            )}
           </CommandList>
         </Command>
       </PopoverContent>
