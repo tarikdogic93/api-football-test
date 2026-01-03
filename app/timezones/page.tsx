@@ -31,14 +31,14 @@ export default function TimezonesPage() {
           offset: String(offset),
         });
 
-        const res = await fetch(`/api/timezones?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch timezones");
+        const response = await fetch(`/api/timezones?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch timezones");
 
-        const json: TimezonesAPIResponse = await res.json();
+        const json: TimezonesAPIResponse = await response.json();
 
         setTimezones(json.timezones);
         setTotal(json.total);
-      } catch (err) {
+      } catch {
         setError("Could not load timezones");
       } finally {
         setLoading(false);
