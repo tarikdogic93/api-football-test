@@ -39,7 +39,7 @@ export default function SeasonsPage() {
         setSeasons(json.seasons);
         setTotal(json.total);
       } catch (err) {
-        setError("Could not load seasons.");
+        setError("Could not load seasons");
       } finally {
         setLoading(false);
       }
@@ -70,7 +70,7 @@ export default function SeasonsPage() {
             {error ? (
               <p className="text-destructive">{error}</p>
             ) : (
-              <p className="text-muted-foreground">No seasons available.</p>
+              <p className="text-muted-foreground">No seasons were found</p>
             )}
           </div>
         ) : (
