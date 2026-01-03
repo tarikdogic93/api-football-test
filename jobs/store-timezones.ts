@@ -5,6 +5,7 @@ import { generateSafeDocumentId } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
 import { registerJob } from "@/lib/job-registry";
+import { TimezoneType } from "@/features/timezones/types";
 
 type StoreTimezonesPayload = {
   timezones: string[];
@@ -23,10 +24,13 @@ async function storeTimezones(
 
   for (const timezone of timezones) {
     const documentId = generateSafeDocumentId(timezone);
-    batch.set(doc(collectionRef, documentId), {
+    const docRef = doc(collectionRef, documentId);
+
+    const createdData: TimezoneType = {
       name: timezone,
-      updatedAt: timestamp,
-    });
+    };
+
+    batch.set(docRef, createdData);
   }
 
   await batch.commit();
