@@ -94,10 +94,10 @@ export default function VenuesPage() {
         if (queryParams.country) params.set("country", queryParams.country);
         if (queryParams.search) params.set("search", queryParams.search);
 
-        const res = await fetch(`/api/venues?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch venues");
+        const response = await fetch(`/api/venues?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch venues");
 
-        const json: VenuesAPIResponse = await res.json();
+        const json: VenuesAPIResponse = await response.json();
 
         setVenues(json.venues);
         setTotal(json.total ?? 0);
