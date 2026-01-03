@@ -79,14 +79,14 @@ export default function CountriesPage() {
         if (queryParams.code) params.set("code", queryParams.code);
         if (queryParams.search) params.set("search", queryParams.search);
 
-        const res = await fetch(`/api/countries?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch countries");
+        const response = await fetch(`/api/countries?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch countries");
 
-        const json: CountriesAPIResponse = await res.json();
+        const json: CountriesAPIResponse = await response.json();
 
         setCountries(json.countries);
         setTotal(json.total);
-      } catch (err) {
+      } catch {
         setError("Could not load countries");
       } finally {
         setLoading(false);
