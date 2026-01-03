@@ -41,6 +41,7 @@ export default function CountriesCombobox({
   const [selectedCountry, setSelectedCountry] = useState<CountryType | null>(
     null
   );
+  const [error, setError] = useState("");
 
   const listContainerRef = useRef<HTMLDivElement>(null);
   const hasSearchedRef = useRef(false);
@@ -48,6 +49,7 @@ export default function CountriesCombobox({
   const fetchCountries = async (reset = false) => {
     if (isLoading) return;
     setIsLoading(true);
+    setError("");
 
     const queryParams = new URLSearchParams();
     queryParams.set("pageSize", DEFAULT_PAGE_SIZE.toString());
@@ -56,6 +58,7 @@ export default function CountriesCombobox({
 
     try {
       const response = await fetch(`/api/countries?${queryParams.toString()}`);
+      if (!response.ok) throw new Error("Failed to fetch countries");
       const data: CountriesAPIResponse = await response.json();
 
       const countries = data.countries || [];
@@ -69,8 +72,8 @@ export default function CountriesCombobox({
       }
 
       setTotalCountries(data.total || 0);
-    } catch (error) {
-      console.log(error);
+    } catch {
+      setError("Could not load countries");
       if (reset) setCountriesList([]);
     } finally {
       setIsLoading(false);
@@ -185,7 +188,7 @@ export default function CountriesCombobox({
       >
         <Command>
           <CommandInput
-            placeholder="Search country..."
+            placeholder="Search countries..."
             value={searchTerm}
             onValueChange={setSearchTerm}
           />
@@ -201,9 +204,15 @@ export default function CountriesCombobox({
               </div>
             )}
 
-            {!isLoading && countriesList.length === 0 && (
+            {error && !isLoading && (
+              <div className="px-2 py-1.5 text-center text-sm text-destructive">
+                {error}
+              </div>
+            )}
+
+            {!isLoading && !error && countriesList.length === 0 && (
               <CommandEmpty className="px-2 py-1.5">
-                No country found.
+                No countries found
               </CommandEmpty>
             )}
 
