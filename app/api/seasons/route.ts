@@ -29,6 +29,8 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
+    console.error(error);
+
     if (error instanceof ZodError) {
       return NextResponse.json(
         { error: "Invalid query parameters", details: error.issues },
@@ -36,7 +38,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    console.error(error);
     return NextResponse.json(
       { error: "Failed to load seasons" },
       { status: 500 }
