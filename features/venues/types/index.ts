@@ -9,6 +9,14 @@ export type VenueType = {
   image: string | null;
 };
 
+export type ExtendedVenueType = VenueType & {
+  updatedAt: number;
+  nameLower: string;
+  queriedCity?: string;
+  queriedCountry?: string;
+  queriedSearch?: string[];
+};
+
 export type VenuesAPIResponse = {
   venues: VenueType[];
   total: number;
