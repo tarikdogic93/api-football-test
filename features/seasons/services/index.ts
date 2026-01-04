@@ -8,11 +8,7 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
-import {
-  ExtendedSeasonType,
-  SeasonsAPIResponse,
-  SeasonType,
-} from "@/features/seasons/types";
+import { SeasonsAPIResponse, SeasonType } from "@/features/seasons/types";
 
 type SeasonsParams = {
   pageSize: number;
@@ -52,18 +48,13 @@ export async function getSeasons({
     schema: [["year", "NUMERIC", "SORTABLE"]],
   });
 
-  const snapshotCheck = await getDocs(query(SEASONS_COLLECTION, limit(1)));
-  let shouldFetchAPI = false;
+  const snapshot = await getDocs(query(SEASONS_COLLECTION, limit(1)));
+  const isStale =
+    snapshot.empty ||
+    !snapshot.docs[0].data()?.updatedAt ||
+    now - snapshot.docs[0].data().updatedAt > ONE_DAY;
 
-  if (snapshotCheck.empty) {
-    shouldFetchAPI = true;
-  } else {
-    const firstDoc = snapshotCheck.docs[0].data() as ExtendedSeasonType;
-
-    shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
-  }
-
-  if (shouldFetchAPI && !fetchedSeasonsCache) {
+  if (isStale) {
     const lockAcquired = await redisClient.set(
       SEASONS_CONSTANTS.REDIS_LOCK_KEY,
       "1",
