@@ -138,14 +138,7 @@ export default function VenuesPage() {
                     autoComplete="off"
                     placeholder="ID..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("name", "");
-                      form.setValue("city", "");
-                      form.setValue("country", "");
-                      form.setValue("search", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -164,14 +157,7 @@ export default function VenuesPage() {
                     autoComplete="off"
                     placeholder="Exact name..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("id", "");
-                      form.setValue("city", "");
-                      form.setValue("country", "");
-                      form.setValue("search", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -190,14 +176,7 @@ export default function VenuesPage() {
                     autoComplete="off"
                     placeholder="Exact city..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("id", "");
-                      form.setValue("name", "");
-                      form.setValue("country", "");
-                      form.setValue("search", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -214,14 +193,7 @@ export default function VenuesPage() {
                 <FormControl>
                   <CountriesCombobox
                     value={field.value || ""}
-                    onChange={(value) => {
-                      field.onChange(value);
-                      form.setValue("id", "");
-                      form.setValue("name", "");
-                      form.setValue("city", "");
-                      form.setValue("search", "");
-                      form.trigger();
-                    }}
+                    onChange={(value) => field.onChange(value)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -240,14 +212,7 @@ export default function VenuesPage() {
                     autoComplete="off"
                     placeholder="Partial name, city or country search..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("id", "");
-                      form.setValue("name", "");
-                      form.setValue("city", "");
-                      form.setValue("country", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
