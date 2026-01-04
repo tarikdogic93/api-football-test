@@ -4,7 +4,6 @@ import { JOB_NAMES, SEASONS_CONSTANTS } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
 import { registerJob } from "@/lib/job-registry";
-import { ExtendedSeasonType } from "@/features/seasons/types";
 
 type StoreSeasonsPayload = {
   seasons: number[];
@@ -23,12 +22,14 @@ async function storeSeasons(payload: StoreSeasonsPayload): Promise<boolean> {
     const documentId = String(season);
     const docRef = doc(collectionRef, documentId);
 
-    const updatedData: ExtendedSeasonType = {
-      year: season,
-      updatedAt: timestamp,
-    };
-
-    batch.set(docRef, updatedData, { merge: true });
+    batch.set(
+      docRef,
+      {
+        year: season,
+        updatedAt: timestamp,
+      },
+      { merge: true }
+    );
   }
 
   await batch.commit();
