@@ -43,16 +43,18 @@ export const searchVenuesSchema = z
       }),
   })
   .superRefine((data, ctx) => {
-    const hasValue = ["id", "name", "city", "country", "search"].some((key) => {
-      const value = data[key as keyof typeof data];
-      return value !== undefined && value.trim() !== "";
-    });
+    const fields = ["id", "name", "city", "country", "search"];
+    const hasValue = fields.some(
+      (key) => data[key as keyof typeof data]?.trim() !== ""
+    );
 
     if (!hasValue) {
-      ctx.addIssue({
-        code: "custom",
-        message: "At least one search parameter must be provided",
-        path: [],
+      fields.forEach((key) => {
+        ctx.addIssue({
+          code: "custom",
+          message: "At least one query parameter must be provided",
+          path: [key],
+        });
       });
     }
   });
