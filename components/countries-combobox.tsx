@@ -25,12 +25,14 @@ type CountriesComboboxProps = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  isInvalid?: boolean;
 };
 
 export default function CountriesCombobox({
   value,
   onChange,
   disabled,
+  isInvalid,
 }: CountriesComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -159,6 +161,7 @@ export default function CountriesCombobox({
           variant="outline"
           role="combobox"
           disabled={disabled}
+          aria-invalid={isInvalid}
           className="min-w-0 bg-background hover:bg-background border-input justify-between px-3 font-normal"
         >
           {value ? (
