@@ -188,13 +188,14 @@ export default function VenuesPage() {
           <FormField
             control={form.control}
             name="country"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem className="w-full md:w-1/5">
                 <FormControl>
                   <CountriesCombobox
                     value={field.value || ""}
                     onChange={(value) => field.onChange(value)}
                     disabled={loading}
+                    isInvalid={!!fieldState.error}
                   />
                 </FormControl>
                 <FormMessage />
