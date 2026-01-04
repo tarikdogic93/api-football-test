@@ -123,12 +123,7 @@ export default function CountriesPage() {
                     autoComplete="off"
                     placeholder="Exact name..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("code", "");
-                      form.setValue("search", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -147,12 +142,7 @@ export default function CountriesPage() {
                     autoComplete="off"
                     placeholder="Exact code..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("name", "");
-                      form.setValue("search", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -171,12 +161,7 @@ export default function CountriesPage() {
                     autoComplete="off"
                     placeholder="Partial name search..."
                     {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      form.setValue("name", "");
-                      form.setValue("code", "");
-                      form.trigger();
-                    }}
+                    onChange={(event) => field.onChange(event)}
                     disabled={loading}
                   />
                 </FormControl>
@@ -207,6 +192,7 @@ export default function CountriesPage() {
         ) : (
           <CountriesList countries={countries} />
         )}
+
         {countries.length > 0 && (
           <div className="flex items-center justify-between mt-4">
             <PageSizeSelector
