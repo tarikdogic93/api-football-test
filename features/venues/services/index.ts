@@ -17,16 +17,12 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
-import {
-  ExtendedVenueType,
-  VenuesAPIResponse,
-  VenueType,
-} from "@/features/venues/types";
+import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 
 const VENUES_COLLECTION = collection(db, VENUES_CONSTANTS.COLLECTION_PATH);
 
-let fetchedVenuesCache: VenueType[] | null = null;
-let lastFetchedQuerySignature: string | null = null;
+let fetchedVenuesCache: Record<string, VenueType[]> = {};
+let lastFetchedQuerySignatures: Record<string, number> = {};
 
 type VenuesQueryParams = {
   idQuery?: string;
@@ -110,102 +106,66 @@ export async function getVenues({
   });
 
   const isSameQueryAsLastTime =
-    lastFetchedQuerySignature === currentQuerySignature;
+    !!lastFetchedQuerySignatures[currentQuerySignature];
+
+  const normalizedQueryValues = [cityQuery, countryQuery, searchQuery]
+    .filter(Boolean)
+    .map(normalizeString);
 
   let isStale = false;
 
-  if (!isSameQueryAsLastTime && idQuery) {
-    const venueDoc = await getDoc(doc(VENUES_COLLECTION, idQuery));
-    if (!venueDoc.exists()) isStale = true;
-    else {
-      const data = venueDoc.data() as ExtendedVenueType;
-      if (!data.updatedAt || now - data.updatedAt > ONE_DAY) isStale = true;
-    }
-  }
+  if (!isSameQueryAsLastTime) {
+    if (idQuery) {
+      const docSnap = await getDoc(doc(VENUES_COLLECTION, idQuery));
+      isStale =
+        !docSnap.exists() ||
+        !docSnap.data()?.updatedAt ||
+        now - docSnap.data().updatedAt > ONE_DAY;
+    } else if (nameQuery) {
+      const snapshot = await getDocs(
+        query(
+          VENUES_COLLECTION,
+          where("nameNormalized", "==", normalizeString(nameQuery)),
+          limit(1)
+        )
+      );
+      isStale =
+        snapshot.empty ||
+        !snapshot.docs[0].data()?.updatedAt ||
+        now - snapshot.docs[0].data().updatedAt > ONE_DAY;
+    } else if (cityQuery || countryQuery || searchQuery) {
+      const snapshotPromises = normalizedQueryValues.map((value) =>
+        getDocs(
+          query(
+            VENUES_COLLECTION,
+            where("queriedValues", "array-contains", value),
+            limit(1)
+          )
+        )
+      );
 
-  if (!isSameQueryAsLastTime && nameQuery) {
-    const snapshot = await getDocs(
-      query(
-        VENUES_COLLECTION,
-        where("nameLower", "==", normalizeString(nameQuery)),
-        limit(1)
-      )
-    );
-    if (
-      snapshot.empty ||
-      !snapshot.docs[0].data().updatedAt ||
-      now - snapshot.docs[0].data().updatedAt > ONE_DAY
-    ) {
-      isStale = true;
-    }
-  }
-
-  if (!isSameQueryAsLastTime && cityQuery) {
-    const snapshot = await getDocs(
-      query(
-        VENUES_COLLECTION,
-        where("queriedCity", "==", normalizeString(cityQuery)),
-        limit(1)
-      )
-    );
-    if (
-      snapshot.empty ||
-      !snapshot.docs[0].data().updatedAt ||
-      now - snapshot.docs[0].data().updatedAt > ONE_DAY
-    ) {
-      isStale = true;
-    }
-  }
-
-  if (!isSameQueryAsLastTime && countryQuery) {
-    const snapshot = await getDocs(
-      query(
-        VENUES_COLLECTION,
-        where("queriedCountry", "==", normalizeString(countryQuery)),
-        limit(1)
-      )
-    );
-    if (
-      snapshot.empty ||
-      !snapshot.docs[0].data().updatedAt ||
-      now - snapshot.docs[0].data().updatedAt > ONE_DAY
-    ) {
-      isStale = true;
-    }
-  }
-
-  if (!isSameQueryAsLastTime && searchQuery) {
-    const snapshot = await getDocs(
-      query(
-        VENUES_COLLECTION,
-        where("queriedSearch", "array-contains", normalizeString(searchQuery)),
-        limit(1)
-      )
-    );
-    if (
-      snapshot.empty ||
-      !snapshot.docs[0].data().updatedAt ||
-      now - snapshot.docs[0].data().updatedAt > ONE_DAY
-    ) {
-      isStale = true;
+      const snapshots = await Promise.all(snapshotPromises);
+      isStale = snapshots.every(
+        (snap) =>
+          snap.empty ||
+          !snap.docs[0]?.data()?.updatedAt ||
+          now - snap.docs[0].data().updatedAt > ONE_DAY
+      );
     }
   }
 
   const shouldFetchAPI = !isSameQueryAsLastTime && isStale;
 
   if (shouldFetchAPI) {
-    const lockAcquired = await redisClient.set(
-      VENUES_CONSTANTS.REDIS_LOCK_KEY,
-      "1",
-      {
-        NX: true,
-        EX: 10,
-      }
-    );
+    const lockKey = `${VENUES_CONSTANTS.REDIS_LOCK_KEY}:${currentQuerySignature}`;
+    const lockAcquired = await redisClient.set(lockKey, "1", {
+      NX: true,
+      EX: 10,
+    });
 
     if (lockAcquired) {
       try {
-        fetchedVenuesCache = await fetchVenuesFromAPI({
+        fetchedVenuesCache[currentQuerySignature] = await fetchVenuesFromAPI({
           idQuery,
           nameQuery,
           cityQuery,
@@ -213,29 +173,18 @@ export async function getVenues({
           searchQuery,
         });
 
-        if (fetchedVenuesCache.length > 0) {
-          const queryType = cityQuery
-            ? "city"
-            : countryQuery
-            ? "country"
-            : searchQuery
-            ? "search"
-            : null;
-
-          const queryValue = cityQuery ?? countryQuery ?? searchQuery ?? null;
-
+        if (fetchedVenuesCache[currentQuerySignature].length > 0) {
           await addBackgroundJob(JOB_NAMES.STORE_VENUES, {
-            venues: fetchedVenuesCache,
+            venues: fetchedVenuesCache[currentQuerySignature],
             timestamp: now,
             querySignature: currentQuerySignature,
-            queryType,
-            queryValue,
+            queryValues: normalizedQueryValues,
           });
 
-          lastFetchedQuerySignature = currentQuerySignature;
+          lastFetchedQuerySignatures[currentQuerySignature] = now;
         }
       } finally {
-        await redisClient.del(VENUES_CONSTANTS.REDIS_LOCK_KEY);
+        await redisClient.del(lockKey);
       }
     }
   }
@@ -248,35 +197,43 @@ export async function getVenues({
   const indexedAt = indexedAtStr ? Number(indexedAtStr) : 0;
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
-  if (!isIndexedFresh && fetchedVenuesCache) {
-    const filteredVenues = fetchedVenuesCache.filter((venue) => {
-      if (idQuery && String(venue.id) !== idQuery) return false;
-      if (
-        nameQuery &&
-        normalizeString(venue.name) !== normalizeString(nameQuery)
-      )
-        return false;
-      if (
-        cityQuery &&
-        normalizeString(venue.city) !== normalizeString(cityQuery)
-      )
-        return false;
-      if (
-        countryQuery &&
-        normalizeString(venue.country) !== normalizeString(countryQuery)
-      )
-        return false;
-      if (
-        searchQuery &&
-        !(
-          normalizeString(venue.name).includes(normalizeString(searchQuery)) ||
-          normalizeString(venue.city).includes(normalizeString(searchQuery)) ||
-          normalizeString(venue.country).includes(normalizeString(searchQuery))
+  if (!isIndexedFresh && fetchedVenuesCache[currentQuerySignature]) {
+    const filteredVenues = fetchedVenuesCache[currentQuerySignature].filter(
+      (venue) => {
+        if (idQuery && String(venue.id) !== idQuery) return false;
+        if (
+          nameQuery &&
+          normalizeString(venue.name) !== normalizeString(nameQuery)
         )
-      )
-        return false;
-      return true;
-    });
+          return false;
+        if (
+          cityQuery &&
+          normalizeString(venue.city) !== normalizeString(cityQuery)
+        )
+          return false;
+        if (
+          countryQuery &&
+          normalizeString(venue.country) !== normalizeString(countryQuery)
+        )
+          return false;
+        if (
+          searchQuery &&
+          !(
+            normalizeString(venue.name).includes(
+              normalizeString(searchQuery)
+            ) ||
+            normalizeString(venue.city).includes(
+              normalizeString(searchQuery)
+            ) ||
+            normalizeString(venue.country).includes(
+              normalizeString(searchQuery)
+            )
+          )
+        )
+          return false;
+        return true;
+      }
+    );
 
     const paginatedVenues = filteredVenues.slice(offset, offset + pageSize);
 
@@ -350,7 +307,7 @@ export async function getVenues({
     image: hit["$.image"],
   }));
 
-  if (fetchedVenuesCache) fetchedVenuesCache = null;
+  delete fetchedVenuesCache[currentQuerySignature];
 
   return {
     venues: hits,
