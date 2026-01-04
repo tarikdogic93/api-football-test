@@ -9,7 +9,7 @@ import { db } from "@/lib/firebase";
 import { addDocuments, ensureRedisConnected } from "@/lib/redis";
 import { exactKey, normalizeString } from "@/lib/utils";
 import { registerJob } from "@/lib/job-registry";
-import { CountryType, ExtendedCountryType } from "@/features/countries/types";
+import { CountryType } from "@/features/countries/types";
 
 type StoreCountriesPayload = {
   countries: CountryType[];
@@ -30,12 +30,14 @@ async function storeCountries(
     const documentId = country.code ?? WORLD_DOCUMENT_ID;
     const docRef = doc(collectionRef, documentId);
 
-    const updatedData: ExtendedCountryType = {
-      ...country,
-      updatedAt: timestamp,
-    };
-
-    batch.set(docRef, updatedData, { merge: true });
+    batch.set(
+      docRef,
+      {
+        ...country,
+        updatedAt: timestamp,
+      },
+      { merge: true }
+    );
   }
 
   await batch.commit();
