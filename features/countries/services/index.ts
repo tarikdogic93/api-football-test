@@ -9,11 +9,7 @@ import {
 } from "@/lib/redis";
 import { exactKey, normalizeString } from "@/lib/utils";
 import { addBackgroundJob } from "@/lib/queue";
-import {
-  CountryType,
-  CountriesAPIResponse,
-  ExtendedCountryType,
-} from "@/features/countries/types";
+import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
 type CountriesQueryParams = {
   nameQuery?: string;
@@ -66,17 +62,13 @@ export async function getCountries({
     ],
   });
 
-  const snapshotCheck = await getDocs(query(COUNTRIES_COLLECTION, limit(1)));
-  let shouldFetchAPI = false;
+  const snapshot = await getDocs(query(COUNTRIES_COLLECTION, limit(1)));
+  const isStale =
+    snapshot.empty ||
+    !snapshot.docs[0].data()?.updatedAt ||
+    now - snapshot.docs[0].data().updatedAt > ONE_DAY;
 
-  if (snapshotCheck.empty) {
-    shouldFetchAPI = true;
-  } else {
-    const firstDoc = snapshotCheck.docs[0].data() as ExtendedCountryType;
-    shouldFetchAPI = !firstDoc.updatedAt || now - firstDoc.updatedAt > ONE_DAY;
-  }
-
-  if (shouldFetchAPI) {
+  if (isStale) {
     const lockAcquired = await redisClient.set(
       COUNTRIES_CONSTANTS.REDIS_LOCK_KEY,
       "1",
