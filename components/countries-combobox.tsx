@@ -164,23 +164,27 @@ export default function CountriesCombobox({
           aria-invalid={isInvalid}
           className="min-w-0 bg-background hover:bg-background border-input justify-between px-3 font-normal"
         >
-          {value ? (
-            <div className="flex items-center gap-2 min-w-0">
-              {selectedCountry?.flag && (
-                <div className="relative w-5 h-4 shrink-0">
-                  <Image
-                    src={selectedCountry.flag}
-                    alt={value}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              )}
-              <span className="truncate">{value}</span>
-            </div>
-          ) : (
-            <span className="text-muted-foreground">Select country</span>
-          )}
+          <div className="flex items-center gap-2 min-w-0">
+            {value ? (
+              <>
+                {selectedCountry?.flag && (
+                  <div className="relative w-5 h-4 shrink-0">
+                    <Image
+                      src={selectedCountry.flag}
+                      alt={value}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <span className="truncate">{value}</span>
+              </>
+            ) : (
+              <span className="text-muted-foreground truncate">
+                Select country
+              </span>
+            )}
+          </div>
           <ChevronDown className="text-muted-foreground/80 shrink-0" />
         </Button>
       </PopoverTrigger>
