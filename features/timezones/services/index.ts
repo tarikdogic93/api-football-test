@@ -47,10 +47,10 @@ export async function getTimezones({
     schema: [["name", "TEXT", "SORTABLE"]],
   });
 
-  const snapshotCheck = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
-  const shouldFetchAPI = snapshotCheck.empty;
+  const snapshot = await getDocs(query(TIMEZONES_COLLECTION, limit(1)));
+  const shouldFetchAPI = snapshot.empty;
 
-  if (shouldFetchAPI && !fetchedTimezonesCache) {
+  if (shouldFetchAPI) {
     const lockAcquired = await redisClient.set(
       TIMEZONES_CONSTANTS.REDIS_LOCK_KEY,
       "1",
