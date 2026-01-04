@@ -198,48 +198,12 @@ export async function getVenues({
   const isIndexedFresh = now - indexedAt <= ONE_DAY;
 
   if (!isIndexedFresh && fetchedVenuesCache[currentQuerySignature]) {
-    const filteredVenues = fetchedVenuesCache[currentQuerySignature].filter(
-      (venue) => {
-        if (idQuery && String(venue.id) !== idQuery) return false;
-        if (
-          nameQuery &&
-          normalizeString(venue.name) !== normalizeString(nameQuery)
-        )
-          return false;
-        if (
-          cityQuery &&
-          normalizeString(venue.city) !== normalizeString(cityQuery)
-        )
-          return false;
-        if (
-          countryQuery &&
-          normalizeString(venue.country) !== normalizeString(countryQuery)
-        )
-          return false;
-        if (
-          searchQuery &&
-          !(
-            normalizeString(venue.name).includes(
-              normalizeString(searchQuery)
-            ) ||
-            normalizeString(venue.city).includes(
-              normalizeString(searchQuery)
-            ) ||
-            normalizeString(venue.country).includes(
-              normalizeString(searchQuery)
-            )
-          )
-        )
-          return false;
-        return true;
-      }
-    );
-
-    const paginatedVenues = filteredVenues.slice(offset, offset + pageSize);
+    const cachedVenues = fetchedVenuesCache[currentQuerySignature] ?? [];
+    const paginatedVenues = cachedVenues.slice(offset, offset + pageSize);
 
     return {
       venues: paginatedVenues,
-      total: filteredVenues.length,
+      total: cachedVenues.length,
       offset: offset + paginatedVenues.length,
     };
   }
