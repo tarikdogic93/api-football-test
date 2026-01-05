@@ -10,6 +10,7 @@ export const JOB_NAMES = {
   STORE_COUNTRIES: "storeCountries",
   STORE_TIMEZONES: "storeTimezones",
   STORE_VENUES: "storeVenues",
+  STORE_TEAMS: "storeTeams",
 } as const;
 
 export const TIMEZONES_CONSTANTS = {
@@ -42,4 +43,12 @@ export const VENUES_CONSTANTS = {
   REDIS_INDEX: "venues",
   REDIS_LOCK_KEY: "venues:fetch-lock",
   REDIS_INDEXED_KEY: "venues:indexed",
+} as const;
+
+export const TEAMS_CONSTANTS = {
+  COLLECTION_PATH: "teams",
+  REDIS_PREFIX: "teams:",
+  REDIS_INDEX: "teams",
+  REDIS_LOCK_KEY: "teams:fetch-lock",
+  REDIS_INDEXED_KEY: "teams:indexed",
 } as const;
