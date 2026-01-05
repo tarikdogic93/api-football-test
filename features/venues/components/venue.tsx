@@ -12,15 +12,13 @@ export default function Venue({
   surface,
   image,
 }: VenueProps) {
-  const displayName = name ?? "Unnamed venue";
-
   return (
     <div className="p-4 shadow rounded flex flex-col items-center text-center gap-1">
       <div className="relative w-28 h-20">
         {image ? (
           <Image
             src={image}
-            alt={displayName}
+            alt={`${name} image`}
             fill
             className="object-fill rounded-md"
           />
@@ -28,9 +26,7 @@ export default function Venue({
           <div className="w-28 h-20 bg-accent rounded-md" />
         )}
       </div>
-      <p className="font-semibold text-primary truncate max-w-full">
-        {displayName}
-      </p>
+      <p className="font-semibold text-primary truncate max-w-full">{name}</p>
       <p className="text-xs text-accent-foreground">
         <span className="font-semibold">City:</span> {city ?? "—"}
       </p>
