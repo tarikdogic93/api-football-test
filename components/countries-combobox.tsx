@@ -171,7 +171,7 @@ export default function CountriesCombobox({
                   <div className="relative w-5 h-4 shrink-0">
                     <Image
                       src={selectedCountry.flag}
-                      alt={value}
+                      alt={`${value} flag`}
                       fill
                       className="object-cover"
                     />
