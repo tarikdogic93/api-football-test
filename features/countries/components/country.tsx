@@ -13,7 +13,7 @@ export default function Country({ name, code, flag }: CountryProps) {
           {flag ? (
             <Image
               src={flag}
-              alt={name}
+              alt={`${name} flag`}
               fill
               className="object-cover rounded-md"
             />
