@@ -21,6 +21,7 @@ export default function Venue({
             alt={`${name} image`}
             fill
             className="object-fill rounded-md"
+            unoptimized
           />
         ) : (
           <div className="w-28 h-20 bg-accent rounded-md" />
