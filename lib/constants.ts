@@ -14,11 +14,11 @@ export const JOB_NAMES = {
 } as const;
 
 export const TIMEZONES_CONSTANTS = {
-  COLLECTION_PATH: "seasons",
-  REDIS_PREFIX: "seasons:",
-  REDIS_INDEX: "seasons",
-  REDIS_LOCK_KEY: "seasons:fetch-lock",
-  REDIS_INDEXED_KEY: "seasons:indexed",
+  COLLECTION_PATH: "timezones",
+  REDIS_PREFIX: "timezones:",
+  REDIS_INDEX: "timezones",
+  REDIS_LOCK_KEY: "timezones:fetch-lock",
+  REDIS_INDEXED_KEY: "timezones:indexed",
 } as const;
 
 export const SEASONS_CONSTANTS = {
