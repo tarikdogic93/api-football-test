@@ -21,6 +21,7 @@ export default function Team({
             alt={`${name} logo`}
             fill
             className="object-contain rounded-full"
+            unoptimized
           />
         ) : (
           <div className="w-28 h-28 bg-accent rounded-full" />
