@@ -30,11 +30,14 @@ const COUNTRIES_COLLECTION = collection(
 let fetchedCountriesCache: CountryType[] | null = null;
 
 export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
-  const response = await fetch("https://v3.football.api-sports.io/countries", {
-    headers: {
-      "x-apisports-key": process.env.API_FOOTBALL_KEY!,
-    },
-  });
+  const response = await fetch(
+    `${process.env.API_FOOTBALL_BASE_URL!}${COUNTRIES_CONSTANTS.API_ENDPOINT}`,
+    {
+      headers: {
+        "x-apisports-key": process.env.API_FOOTBALL_KEY!,
+      },
+    }
+  );
 
   if (!response.ok) throw new Error(`API error ${response.status}`);
   const json = await response.json();

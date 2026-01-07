@@ -23,11 +23,14 @@ const TIMEZONES_COLLECTION = collection(
 let fetchedTimezonesCache: string[] | null = null;
 
 export async function fetchTimezonesFromAPI(): Promise<string[]> {
-  const response = await fetch("https://v3.football.api-sports.io/timezone", {
-    headers: {
-      "x-apisports-key": process.env.API_FOOTBALL_KEY!,
-    },
-  });
+  const response = await fetch(
+    `${process.env.API_FOOTBALL_BASE_URL!}${TIMEZONES_CONSTANTS.API_ENDPOINT}`,
+    {
+      headers: {
+        "x-apisports-key": process.env.API_FOOTBALL_KEY!,
+      },
+    }
+  );
 
   if (!response.ok) throw new Error(`API error ${response.status}`);
   const json = await response.json();

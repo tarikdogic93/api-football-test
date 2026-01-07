@@ -21,7 +21,7 @@ let fetchedSeasonsCache: number[] | null = null;
 
 export async function fetchSeasonsFromAPI(): Promise<number[]> {
   const response = await fetch(
-    "https://v3.football.api-sports.io/leagues/seasons",
+    `${process.env.API_FOOTBALL_BASE_URL!}${SEASONS_CONSTANTS.API_ENDPOINT}`,
     {
       headers: {
         "x-apisports-key": process.env.API_FOOTBALL_KEY!,

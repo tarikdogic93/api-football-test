@@ -60,7 +60,9 @@ export async function fetchVenuesFromAPI(query: VenuesQueryParams) {
   if (query.searchQuery) params.set("search", query.searchQuery);
 
   const response = await fetch(
-    `https://v3.football.api-sports.io/venues?${params.toString()}`,
+    `${process.env.API_FOOTBALL_BASE_URL!}${
+      VENUES_CONSTANTS.API_ENDPOINT
+    }?${params.toString()}`,
     { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! } }
   );
 
