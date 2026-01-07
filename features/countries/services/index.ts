@@ -1,6 +1,11 @@
 import { collection, getDocs, query, limit } from "firebase/firestore";
 
-import { COUNTRIES_CONSTANTS, JOB_NAMES, ONE_DAY } from "@/lib/constants";
+import {
+  API_FOOTBALL_CONSTANTS,
+  COUNTRIES_CONSTANTS,
+  JOB_NAMES,
+  ONE_DAY,
+} from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -34,7 +39,7 @@ export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
     `${process.env.API_FOOTBALL_BASE_URL!}${COUNTRIES_CONSTANTS.API_ENDPOINT}`,
     {
       headers: {
-        "x-apisports-key": process.env.API_FOOTBALL_KEY!,
+        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
       },
     }
   );

@@ -1,6 +1,11 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import { JOB_NAMES, ONE_DAY, SEASONS_CONSTANTS } from "@/lib/constants";
+import {
+  API_FOOTBALL_CONSTANTS,
+  JOB_NAMES,
+  ONE_DAY,
+  SEASONS_CONSTANTS,
+} from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -24,7 +29,7 @@ export async function fetchSeasonsFromAPI(): Promise<number[]> {
     `${process.env.API_FOOTBALL_BASE_URL!}${SEASONS_CONSTANTS.API_ENDPOINT}`,
     {
       headers: {
-        "x-apisports-key": process.env.API_FOOTBALL_KEY!,
+        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
       },
     }
   );

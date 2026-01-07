@@ -9,7 +9,12 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import { JOB_NAMES, ONE_DAY, VENUES_CONSTANTS } from "@/lib/constants";
+import {
+  API_FOOTBALL_CONSTANTS,
+  JOB_NAMES,
+  ONE_DAY,
+  VENUES_CONSTANTS,
+} from "@/lib/constants";
 import { exactKey, getQueryIndexedKey, normalizeString } from "@/lib/utils";
 import {
   ensureRedisConnected,
@@ -63,7 +68,11 @@ export async function fetchVenuesFromAPI(query: VenuesQueryParams) {
     `${process.env.API_FOOTBALL_BASE_URL!}${
       VENUES_CONSTANTS.API_ENDPOINT
     }?${params.toString()}`,
-    { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! } }
+    {
+      headers: {
+        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
+      },
+    }
   );
 
   if (!response.ok) throw new Error(`API error ${response.status}`);
