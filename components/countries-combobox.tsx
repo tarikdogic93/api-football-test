@@ -49,6 +49,7 @@ export default function CountriesCombobox({
   const hasSearchedRef = useRef(false);
   const countryRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const hasScrolledToSelectedCountryRef = useRef(false);
+  const shouldAutoLoadRef = useRef(false);
 
   const fetchCountries = async (reset = false) => {
     if (isLoading) return;
@@ -85,12 +86,38 @@ export default function CountriesCombobox({
   };
 
   useEffect(() => {
+    if (
+      !searchTerm &&
+      value &&
+      !isLoading &&
+      countriesList.length > 0 &&
+      countriesList.length < totalCountries &&
+      (shouldAutoLoadRef.current || !selectedCountry)
+    ) {
+      const match = countriesList.find((country) => country.name === value);
+
+      if (!match) {
+        fetchCountries();
+      } else {
+        shouldAutoLoadRef.current = false;
+      }
+    }
+  }, [
+    searchTerm,
+    value,
+    selectedCountry,
+    isLoading,
+    countriesList,
+    totalCountries,
+  ]);
+
+  useEffect(() => {
     if (isOpen && countriesList.length === 0 && !hasSearchedRef.current) {
       fetchCountries(true);
     }
 
     if (isOpen && selectedCountry && !hasScrolledToSelectedCountryRef.current) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const selectedCountryElement =
           countryRefs.current[selectedCountry.name];
         const listContainerElement = listContainerRef.current;
@@ -116,12 +143,13 @@ export default function CountriesCombobox({
 
           hasScrolledToSelectedCountryRef.current = true;
         }
-      }, 50);
+      });
     }
 
     if (!isOpen) {
       hasSearchedRef.current = false;
       hasScrolledToSelectedCountryRef.current = false;
+      shouldAutoLoadRef.current = false;
     }
   }, [isOpen, selectedCountry, countriesList]);
 
@@ -153,6 +181,10 @@ export default function CountriesCombobox({
 
     const debounce = setTimeout(() => {
       if (!searchTerm && hasSearchedRef.current) {
+        if (value) {
+          shouldAutoLoadRef.current = true;
+          hasScrolledToSelectedCountryRef.current = false;
+        }
         fetchCountries(true);
         return;
       }
