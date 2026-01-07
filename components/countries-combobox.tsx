@@ -228,8 +228,13 @@ export default function CountriesCombobox({
                 key={`${country.code}-${country.name}`}
                 value={country.name}
                 onSelect={(selectedValue) => {
-                  onChange(selectedValue);
-                  setSelectedCountry(country);
+                  if (value === selectedValue) {
+                    onChange("");
+                    setSelectedCountry(null);
+                  } else {
+                    onChange(selectedValue);
+                    setSelectedCountry(country);
+                  }
                   setIsOpen(false);
                 }}
               >
