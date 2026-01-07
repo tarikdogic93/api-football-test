@@ -1,11 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import {
-  API_FOOTBALL_CONSTANTS,
-  JOB_NAMES,
-  ONE_DAY,
-  SEASONS_CONSTANTS,
-} from "@/lib/constants";
+import { JOB_NAMES, ONE_DAY, SEASONS_CONSTANTS } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -13,6 +8,7 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
+import { fetchFromAPIFootball } from "@/lib/api-football";
 import { SeasonsAPIResponse, SeasonType } from "@/features/seasons/types";
 
 type SeasonsParams = {
@@ -24,19 +20,10 @@ const SEASONS_COLLECTION = collection(db, SEASONS_CONSTANTS.COLLECTION_PATH);
 
 let fetchedSeasonsCache: number[] | null = null;
 
-export async function fetchSeasonsFromAPI(): Promise<number[]> {
-  const response = await fetch(
-    `${process.env.API_FOOTBALL_BASE_URL!}${SEASONS_CONSTANTS.API_ENDPOINT}`,
-    {
-      headers: {
-        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
-      },
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-  const json = await response.json();
-  return json.response as number[];
+export function fetchSeasonsFromAPI(): Promise<number[]> {
+  return fetchFromAPIFootball<number[]>({
+    endpoint: SEASONS_CONSTANTS.API_ENDPOINT,
+  });
 }
 
 export async function getSeasons({

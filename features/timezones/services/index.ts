@@ -1,10 +1,6 @@
 import { collection, getDocs, limit, query } from "firebase/firestore";
 
-import {
-  API_FOOTBALL_CONSTANTS,
-  JOB_NAMES,
-  TIMEZONES_CONSTANTS,
-} from "@/lib/constants";
+import { JOB_NAMES, TIMEZONES_CONSTANTS } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -12,6 +8,7 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
+import { fetchFromAPIFootball } from "@/lib/api-football";
 import { TimezonesAPIResponse, TimezoneType } from "@/features/timezones/types";
 
 type TimezonesParams = {
@@ -26,19 +23,10 @@ const TIMEZONES_COLLECTION = collection(
 
 let fetchedTimezonesCache: string[] | null = null;
 
-export async function fetchTimezonesFromAPI(): Promise<string[]> {
-  const response = await fetch(
-    `${process.env.API_FOOTBALL_BASE_URL!}${TIMEZONES_CONSTANTS.API_ENDPOINT}`,
-    {
-      headers: {
-        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
-      },
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-  const json = await response.json();
-  return json.response as string[];
+export function fetchTimezonesFromAPI(): Promise<string[]> {
+  return fetchFromAPIFootball<string[]>({
+    endpoint: TIMEZONES_CONSTANTS.API_ENDPOINT,
+  });
 }
 
 export async function getTimezones({

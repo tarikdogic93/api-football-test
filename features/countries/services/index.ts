@@ -1,11 +1,6 @@
 import { collection, getDocs, query, limit } from "firebase/firestore";
 
-import {
-  API_FOOTBALL_CONSTANTS,
-  COUNTRIES_CONSTANTS,
-  JOB_NAMES,
-  ONE_DAY,
-} from "@/lib/constants";
+import { COUNTRIES_CONSTANTS, JOB_NAMES, ONE_DAY } from "@/lib/constants";
 import { db } from "@/lib/firebase";
 import {
   ensureRedisConnected,
@@ -14,6 +9,7 @@ import {
 } from "@/lib/redis";
 import { exactKey, normalizeString } from "@/lib/utils";
 import { addBackgroundJob } from "@/lib/queue";
+import { fetchFromAPIFootball } from "@/lib/api-football";
 import { CountryType, CountriesAPIResponse } from "@/features/countries/types";
 
 type CountriesQueryParams = {
@@ -34,19 +30,10 @@ const COUNTRIES_COLLECTION = collection(
 
 let fetchedCountriesCache: CountryType[] | null = null;
 
-export async function fetchCountriesFromAPI(): Promise<CountryType[]> {
-  const response = await fetch(
-    `${process.env.API_FOOTBALL_BASE_URL!}${COUNTRIES_CONSTANTS.API_ENDPOINT}`,
-    {
-      headers: {
-        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
-      },
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-  const json = await response.json();
-  return json.response as CountryType[];
+export function fetchCountriesFromAPI(): Promise<CountryType[]> {
+  return fetchFromAPIFootball<CountryType[]>({
+    endpoint: COUNTRIES_CONSTANTS.API_ENDPOINT,
+  });
 }
 
 export async function getCountries({

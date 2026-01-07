@@ -9,12 +9,7 @@ import {
 } from "firebase/firestore";
 
 import { db } from "@/lib/firebase";
-import {
-  API_FOOTBALL_CONSTANTS,
-  JOB_NAMES,
-  ONE_DAY,
-  VENUES_CONSTANTS,
-} from "@/lib/constants";
+import { JOB_NAMES, ONE_DAY, VENUES_CONSTANTS } from "@/lib/constants";
 import { exactKey, getQueryIndexedKey, normalizeString } from "@/lib/utils";
 import {
   ensureRedisConnected,
@@ -22,6 +17,7 @@ import {
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
+import { fetchFromAPIFootball } from "@/lib/api-football";
 import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 
 const VENUES_COLLECTION = collection(db, VENUES_CONSTANTS.COLLECTION_PATH);
@@ -56,29 +52,17 @@ function buildVenuesQuerySignature(params: VenuesQueryParams) {
   });
 }
 
-export async function fetchVenuesFromAPI(query: VenuesQueryParams) {
-  const params = new URLSearchParams();
-  if (query.idQuery) params.set("id", query.idQuery);
-  if (query.nameQuery) params.set("name", query.nameQuery);
-  if (query.cityQuery) params.set("city", query.cityQuery);
-  if (query.countryQuery) params.set("country", query.countryQuery);
-  if (query.searchQuery) params.set("search", query.searchQuery);
-
-  const response = await fetch(
-    `${process.env.API_FOOTBALL_BASE_URL!}${
-      VENUES_CONSTANTS.API_ENDPOINT
-    }?${params.toString()}`,
-    {
-      headers: {
-        [API_FOOTBALL_CONSTANTS.HEADER_KEY_NAME]: process.env.API_FOOTBALL_KEY!,
-      },
-    }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-
-  const json = await response.json();
-  return json.response as VenueType[];
+export function fetchVenuesFromAPI(query: VenuesQueryParams) {
+  return fetchFromAPIFootball<VenueType[]>({
+    endpoint: VENUES_CONSTANTS.API_ENDPOINT,
+    query: {
+      id: query.idQuery,
+      name: query.nameQuery,
+      city: query.cityQuery,
+      country: query.countryQuery,
+      search: query.searchQuery,
+    },
+  });
 }
 
 export async function getVenues({
