@@ -47,6 +47,8 @@ export default function CountriesCombobox({
 
   const listContainerRef = useRef<HTMLDivElement>(null);
   const hasSearchedRef = useRef(false);
+  const countryRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const hasScrolledToSelectedCountryRef = useRef(false);
 
   const fetchCountries = async (reset = false) => {
     if (isLoading) return;
@@ -87,10 +89,41 @@ export default function CountriesCombobox({
       fetchCountries(true);
     }
 
+    if (isOpen && selectedCountry && !hasScrolledToSelectedCountryRef.current) {
+      setTimeout(() => {
+        const selectedCountryElement =
+          countryRefs.current[selectedCountry.name];
+        const listContainerElement = listContainerRef.current;
+
+        if (selectedCountryElement && listContainerElement) {
+          const selectedCountryTop = selectedCountryElement.offsetTop;
+          const selectedCountryBottom =
+            selectedCountryTop + selectedCountryElement.offsetHeight;
+
+          if (
+            selectedCountryTop < listContainerElement.scrollTop ||
+            selectedCountryBottom >
+              listContainerElement.scrollTop + listContainerElement.clientHeight
+          ) {
+            listContainerElement.scrollTo({
+              top:
+                selectedCountryTop -
+                listContainerElement.clientHeight / 2 +
+                selectedCountryElement.offsetHeight / 2,
+              behavior: "smooth",
+            });
+          }
+
+          hasScrolledToSelectedCountryRef.current = true;
+        }
+      }, 50);
+    }
+
     if (!isOpen) {
       hasSearchedRef.current = false;
+      hasScrolledToSelectedCountryRef.current = false;
     }
-  }, [isOpen]);
+  }, [isOpen, selectedCountry, countriesList]);
 
   const handleScroll = () => {
     const container = listContainerRef.current;
@@ -227,6 +260,9 @@ export default function CountriesCombobox({
               <CommandItem
                 key={`${country.code}-${country.name}`}
                 value={country.name}
+                ref={(element) => {
+                  countryRefs.current[country.name] = element;
+                }}
                 onSelect={(selectedValue) => {
                   if (value === selectedValue) {
                     onChange("");
