@@ -129,6 +129,13 @@ export default function CountriesCombobox({
     const container = listContainerRef.current;
     if (!container || isLoading) return;
 
+    if (searchTerm) {
+      const validation = searchCountriesSchema.safeParse({
+        search: searchTerm,
+      });
+      if (!validation.success) return;
+    }
+
     const threshold = 8;
 
     if (
