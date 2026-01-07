@@ -5,6 +5,10 @@ export const PAGE_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export const WORLD_DOCUMENT_ID = "WORLD";
 
+export const API_FOOTBALL_CONSTANTS = {
+  HEADER_KEY_NAME: "x-apisports-key",
+} as const;
+
 export const JOB_NAMES = {
   STORE_SEASONS: "storeSeasons",
   STORE_COUNTRIES: "storeCountries",
