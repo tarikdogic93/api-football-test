@@ -19,6 +19,7 @@ export const TIMEZONES_CONSTANTS = {
   REDIS_INDEX: "timezones",
   REDIS_LOCK_KEY: "timezones:fetch-lock",
   REDIS_INDEXED_KEY: "timezones:indexed",
+  API_ENDPOINT: "/timezone",
 } as const;
 
 export const SEASONS_CONSTANTS = {
@@ -27,6 +28,7 @@ export const SEASONS_CONSTANTS = {
   REDIS_INDEX: "seasons",
   REDIS_LOCK_KEY: "seasons:fetch-lock",
   REDIS_INDEXED_KEY: "seasons:indexed",
+  API_ENDPOINT: "/leagues/seasons",
 } as const;
 
 export const COUNTRIES_CONSTANTS = {
@@ -35,6 +37,7 @@ export const COUNTRIES_CONSTANTS = {
   REDIS_INDEX: "countries",
   REDIS_LOCK_KEY: "countries:fetch-lock",
   REDIS_INDEXED_KEY: "countries:indexed",
+  API_ENDPOINT: "/countries",
 } as const;
 
 export const VENUES_CONSTANTS = {
@@ -43,6 +46,7 @@ export const VENUES_CONSTANTS = {
   REDIS_INDEX: "venues",
   REDIS_LOCK_KEY: "venues:fetch-lock",
   REDIS_INDEXED_KEY: "venues:indexed",
+  API_ENDPOINT: "/venues",
 } as const;
 
 export const TEAMS_CONSTANTS = {
@@ -51,4 +55,5 @@ export const TEAMS_CONSTANTS = {
   REDIS_INDEX: "teams",
   REDIS_LOCK_KEY: "teams:fetch-lock",
   REDIS_INDEXED_KEY: "teams:indexed",
+  API_ENDPOINT: "/teams",
 } as const;
