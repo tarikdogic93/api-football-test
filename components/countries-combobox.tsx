@@ -113,7 +113,17 @@ export default function CountriesCombobox({
 
   useEffect(() => {
     if (isOpen && countriesList.length === 0 && !hasSearchedRef.current) {
-      fetchCountries(true);
+      if (searchTerm) {
+        const validation = searchCountriesSchema.safeParse({
+          search: searchTerm,
+        });
+
+        if (validation.success) {
+          fetchCountries(true);
+        }
+      } else {
+        fetchCountries(true);
+      }
     }
 
     if (isOpen && selectedCountry && !hasScrolledToSelectedCountryRef.current) {
@@ -151,7 +161,7 @@ export default function CountriesCombobox({
       hasScrolledToSelectedCountryRef.current = false;
       shouldAutoLoadRef.current = false;
     }
-  }, [isOpen, selectedCountry, countriesList]);
+  }, [isOpen, selectedCountry, countriesList, searchTerm]);
 
   const handleScroll = () => {
     const container = listContainerRef.current;
