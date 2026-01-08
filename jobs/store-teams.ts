@@ -11,10 +11,12 @@ type StoreTeamsPayload = {
   teams: TeamType[];
   timestamp: number;
   querySignature: string;
-  queryValues: string[];
   leagueQuery?: string;
   seasonQuery?: string;
   venueQuery?: string;
+  countryQuery?: string;
+  codeQuery?: string;
+  searchQuery?: string;
 };
 
 async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
@@ -22,10 +24,12 @@ async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
     teams,
     timestamp,
     querySignature,
-    queryValues,
     leagueQuery,
     seasonQuery,
     venueQuery,
+    countryQuery,
+    codeQuery,
+    searchQuery,
   } = payload;
 
   if (!teams || teams.length === 0) return true;
@@ -33,25 +37,41 @@ async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
   const collectionRef = collection(db, TEAMS_CONSTANTS.COLLECTION_PATH);
   const batch = writeBatch(db);
 
-  const normalizedValues = queryValues.map(normalizeString);
-
   for (const team of teams) {
     const documentId = String(team.id);
     const docRef = doc(collectionRef, documentId);
 
-    batch.set(
-      docRef,
-      {
-        ...team,
-        updatedAt: timestamp,
-        nameNormalized: normalizeString(team.name),
-        queriedValues: arrayUnion(...normalizedValues),
-        ...(leagueQuery ? { leagueId: leagueQuery } : {}),
-        ...(seasonQuery ? { season: seasonQuery } : {}),
-        ...(venueQuery ? { venueId: venueQuery } : {}),
-      },
-      { merge: true }
-    );
+    const updatedPayload: Record<string, any> = {
+      ...team,
+      updatedAt: timestamp,
+      nameNormalized: normalizeString(team.name),
+    };
+
+    batch.set(docRef, updatedPayload, { merge: true });
+
+    const nestedUpdatedPayload: Record<string, any> = {};
+
+    if (leagueQuery)
+      nestedUpdatedPayload["queriedValues.league"] =
+        normalizeString(leagueQuery);
+    if (seasonQuery)
+      nestedUpdatedPayload["queriedValues.season"] =
+        normalizeString(seasonQuery);
+    if (venueQuery)
+      nestedUpdatedPayload["queriedValues.venue"] = normalizeString(venueQuery);
+    if (countryQuery)
+      nestedUpdatedPayload["queriedValues.country"] =
+        normalizeString(countryQuery);
+    if (codeQuery)
+      nestedUpdatedPayload["queriedValues.code"] = normalizeString(codeQuery);
+    if (searchQuery)
+      nestedUpdatedPayload["queriedValues.search"] = arrayUnion(
+        normalizeString(searchQuery)
+      );
+
+    if (Object.keys(nestedUpdatedPayload).length > 0) {
+      batch.update(docRef, nestedUpdatedPayload);
+    }
   }
 
   await batch.commit();

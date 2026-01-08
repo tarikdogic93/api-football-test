@@ -109,17 +109,6 @@ export async function getTeams({
   const isSameQueryAsLastTime =
     !!lastFetchedQuerySignatures[currentQuerySignature];
 
-  const normalizedQueryValues = [
-    leagueQuery,
-    seasonQuery,
-    countryQuery,
-    codeQuery,
-    venueQuery,
-    searchQuery,
-  ]
-    .filter(Boolean)
-    .map(normalizeString);
-
   let isStale = false;
 
   if (!isSameQueryAsLastTime) {
@@ -141,24 +130,76 @@ export async function getTeams({
         snapshot.empty ||
         !snapshot.docs[0].data()?.updatedAt ||
         now - snapshot.docs[0].data().updatedAt > ONE_DAY;
-    } else if (normalizedQueryValues.length > 0) {
-      const snapshotPromises = normalizedQueryValues.map((value) =>
-        getDocs(
-          query(
-            TEAMS_COLLECTION,
-            where("queriedValues", "array-contains", value),
-            limit(1)
-          )
+    } else if (leagueQuery && seasonQuery) {
+      const snapshot = await getDocs(
+        query(
+          TEAMS_COLLECTION,
+          where("queriedValues.league", "==", normalizeString(leagueQuery)),
+          where("queriedValues.season", "==", normalizeString(seasonQuery)),
+          limit(1)
         )
       );
 
-      const snapshots = await Promise.all(snapshotPromises);
-      isStale = snapshots.every(
-        (snap) =>
-          snap.empty ||
-          !snap.docs[0]?.data()?.updatedAt ||
-          now - snap.docs[0].data().updatedAt > ONE_DAY
+      isStale =
+        snapshot.empty ||
+        !snapshot.docs[0].data()?.updatedAt ||
+        now - snapshot.docs[0].data().updatedAt > ONE_DAY;
+    } else if (venueQuery) {
+      const snapshot = await getDocs(
+        query(
+          TEAMS_COLLECTION,
+          where("queriedValues.venue", "==", normalizeString(venueQuery)),
+          limit(1)
+        )
       );
+
+      isStale =
+        snapshot.empty ||
+        !snapshot.docs[0].data()?.updatedAt ||
+        now - snapshot.docs[0].data().updatedAt > ONE_DAY;
+    } else if (countryQuery) {
+      const snapshot = await getDocs(
+        query(
+          TEAMS_COLLECTION,
+          where("queriedValues.country", "==", normalizeString(countryQuery)),
+          limit(1)
+        )
+      );
+
+      isStale =
+        snapshot.empty ||
+        !snapshot.docs[0].data()?.updatedAt ||
+        now - snapshot.docs[0].data().updatedAt > ONE_DAY;
+    } else if (codeQuery) {
+      const snapshot = await getDocs(
+        query(
+          TEAMS_COLLECTION,
+          where("queriedValues.code", "==", normalizeString(codeQuery)),
+          limit(1)
+        )
+      );
+
+      isStale =
+        snapshot.empty ||
+        !snapshot.docs[0].data()?.updatedAt ||
+        now - snapshot.docs[0].data().updatedAt > ONE_DAY;
+    } else if (searchQuery) {
+      const snapshot = await getDocs(
+        query(
+          TEAMS_COLLECTION,
+          where(
+            "queriedValues.search",
+            "array-contains",
+            normalizeString(searchQuery)
+          ),
+          limit(1)
+        )
+      );
+
+      isStale =
+        snapshot.empty ||
+        !snapshot.docs[0].data()?.updatedAt ||
+        now - snapshot.docs[0].data().updatedAt > ONE_DAY;
     }
   }
 
@@ -189,10 +230,12 @@ export async function getTeams({
             teams: fetchedTeamsCache[currentQuerySignature],
             timestamp: now,
             querySignature: currentQuerySignature,
-            queryValues: normalizedQueryValues,
             leagueQuery,
             seasonQuery,
             venueQuery,
+            countryQuery,
+            codeQuery,
+            searchQuery,
           });
 
           lastFetchedQuerySignatures[currentQuerySignature] = now;
