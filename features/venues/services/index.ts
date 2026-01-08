@@ -94,9 +94,7 @@ export async function getVenues({
   const isSameQueryAsLastTime =
     !!lastFetchedQuerySignatures[currentQuerySignature];
 
-  const normalizedQueryValues = [cityQuery, countryQuery, searchQuery]
-    .filter(Boolean)
-    .map(normalizeString);
+  const otherQueries = [cityQuery, countryQuery, searchQuery].filter(Boolean);
 
   let isStale = false;
 
@@ -119,12 +117,12 @@ export async function getVenues({
         snapshot.empty ||
         !snapshot.docs[0].data()?.updatedAt ||
         now - snapshot.docs[0].data().updatedAt > ONE_DAY;
-    } else if (normalizedQueryValues.length > 0) {
-      const snapshotPromises = normalizedQueryValues.map((value) =>
+    } else if (otherQueries.length > 0) {
+      const snapshotPromises = otherQueries.map((value) =>
         getDocs(
           query(
             VENUES_COLLECTION,
-            where("queriedValues", "array-contains", value),
+            where("queriedValues", "array-contains", normalizeString(value)),
             limit(1)
           )
         )
@@ -164,7 +162,7 @@ export async function getVenues({
             venues: fetchedVenuesCache[currentQuerySignature],
             timestamp: now,
             querySignature: currentQuerySignature,
-            queryValues: normalizedQueryValues,
+            queriedValues: otherQueries,
           });
 
           lastFetchedQuerySignatures[currentQuerySignature] = now;

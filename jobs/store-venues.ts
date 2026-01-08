@@ -11,18 +11,18 @@ type StoreVenuesPayload = {
   venues: VenueType[];
   timestamp: number;
   querySignature: string;
-  queryValues: string[];
+  queriedValues: string[];
 };
 
 async function storeVenues(payload: StoreVenuesPayload): Promise<boolean> {
-  const { venues, timestamp, querySignature, queryValues } = payload;
+  const { venues, timestamp, querySignature, queriedValues } = payload;
 
   if (!venues || venues.length === 0) return true;
 
   const collectionRef = collection(db, VENUES_CONSTANTS.COLLECTION_PATH);
   const batch = writeBatch(db);
 
-  const normalizedValues = queryValues.map(normalizeString);
+  const normalizedQueriedValues = queriedValues.map(normalizeString);
 
   for (const venue of venues) {
     const documentId = String(venue.id);
@@ -34,7 +34,7 @@ async function storeVenues(payload: StoreVenuesPayload): Promise<boolean> {
         ...venue,
         updatedAt: timestamp,
         nameNormalized: normalizeString(venue.name),
-        queriedValues: arrayUnion(...normalizedValues),
+        queriedValues: arrayUnion(...normalizedQueriedValues),
       },
       { merge: true }
     );
