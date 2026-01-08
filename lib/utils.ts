@@ -21,8 +21,8 @@ export function exactKey(value?: string | null) {
 }
 
 export function getQueryIndexedKey(
-  redisIndexedKey: string,
+  indexedKey: string,
   querySignature: string
 ): string {
-  return `${redisIndexedKey}:${Buffer.from(querySignature).toString("base64")}`;
+  return `${indexedKey}:${Buffer.from(querySignature).toString("base64")}`;
 }
