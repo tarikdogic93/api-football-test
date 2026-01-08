@@ -119,7 +119,7 @@ export async function getVenues({
         snapshot.empty ||
         !snapshot.docs[0].data()?.updatedAt ||
         now - snapshot.docs[0].data().updatedAt > ONE_DAY;
-    } else if (cityQuery || countryQuery || searchQuery) {
+    } else if (normalizedQueryValues.length > 0) {
       const snapshotPromises = normalizedQueryValues.map((value) =>
         getDocs(
           query(
