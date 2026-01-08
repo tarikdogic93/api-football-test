@@ -36,7 +36,8 @@ async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
   const normalizedValues = queryValues.map(normalizeString);
 
   for (const team of teams) {
-    const docRef = doc(collectionRef, String(team.id));
+    const documentId = String(team.id);
+    const docRef = doc(collectionRef, documentId);
 
     batch.set(
       docRef,
@@ -58,16 +59,16 @@ async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
   await addDocuments(
     TEAMS_CONSTANTS.REDIS_PREFIX,
     teams.map((team) => ({
+      ...team,
       id: String(team.id),
       name_exact: exactKey(team.name),
-      name_search: normalizeString(team.name),
       country_exact: exactKey(team.country),
+      code_exact: exactKey(team.code),
+      leagueId: exactKey(leagueQuery),
+      season: exactKey(seasonQuery),
+      venueId: exactKey(venueQuery),
+      name_search: normalizeString(team.name),
       country_search: normalizeString(team.country),
-      code: team.code,
-      ...(leagueQuery ? { leagueId: leagueQuery } : {}),
-      ...(seasonQuery ? { season: seasonQuery } : {}),
-      ...(venueQuery ? { venueId: venueQuery } : {}),
-      founded: team.founded ? String(team.founded) : null,
       national: team.national ? "true" : "false",
     })),
     "id"
