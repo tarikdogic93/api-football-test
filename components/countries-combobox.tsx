@@ -316,7 +316,6 @@ export default function CountriesCombobox({
                   if (value === selectedValue) {
                     onChange("");
                     setSelectedCountry(null);
-                    setSearchTerm("");
                   } else {
                     onChange(selectedValue);
                     setSelectedCountry(country);
