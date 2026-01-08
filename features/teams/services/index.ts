@@ -89,8 +89,7 @@ export async function getTeams({
       ["country_exact", "TAG"],
       ["country_search", "TEXT"],
       ["code_exact", "TAG"],
-      ["leagueId", "TAG"],
-      ["season", "TAG"],
+      ["leagueSeason", "TAG"],
       ["venueId", "TAG"],
     ],
   });
@@ -273,9 +272,14 @@ export async function getTeams({
   if (nameQuery) filters.push(`@name_exact:{${exactKey(nameQuery)}}`);
   if (countryQuery) filters.push(`@country_exact:{${exactKey(countryQuery)}}`);
   if (codeQuery) filters.push(`@code_exact:{${exactKey(codeQuery)}}`);
-  if (leagueQuery) filters.push(`@leagueId:{${exactKey(leagueQuery)}}`);
-  if (seasonQuery) filters.push(`@season:{${exactKey(seasonQuery)}}`);
   if (venueQuery) filters.push(`@venueId:{${exactKey(venueQuery)}}`);
+
+  if (leagueQuery && seasonQuery) {
+    filters.push(
+      `@leagueSeason:{${exactKey(leagueQuery)}_${exactKey(seasonQuery)}}`
+    );
+  }
+
   if (searchQuery)
     filters.push(
       `(@name_search|country_search:*${normalizeString(searchQuery)}*)`

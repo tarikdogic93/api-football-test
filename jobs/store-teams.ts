@@ -2,7 +2,7 @@ import { writeBatch, collection, doc, arrayUnion } from "firebase/firestore";
 
 import { JOB_NAMES, TEAMS_CONSTANTS } from "@/lib/constants";
 import { db } from "@/lib/firebase";
-import { addDocuments, ensureRedisConnected } from "@/lib/redis";
+import { ensureRedisConnected } from "@/lib/redis";
 import { exactKey, getQueryIndexedKey, normalizeString } from "@/lib/utils";
 import { registerJob } from "@/lib/job-registry";
 import { TeamType } from "@/features/teams/types";
@@ -77,25 +77,66 @@ async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
 
   await batch.commit();
 
-  await addDocuments(
-    TEAMS_CONSTANTS.REDIS_PREFIX,
-    teams.map((team) => ({
+  const redisClient = await ensureRedisConnected();
+
+  const leagueSeasonTag =
+    leagueQuery && seasonQuery
+      ? `${exactKey(leagueQuery)}_${exactKey(seasonQuery)}`
+      : null;
+
+  const initialPipeline = redisClient.multi();
+
+  for (const team of teams) {
+    const redisKey = `${TEAMS_CONSTANTS.REDIS_PREFIX}:${team.id}`;
+
+    initialPipeline.json.set(redisKey, "$", {
       ...team,
       id: String(team.id),
       name_exact: exactKey(team.name),
       country_exact: exactKey(team.country),
       code_exact: exactKey(team.code),
-      leagueId: exactKey(leagueQuery),
-      season: exactKey(seasonQuery),
       venueId: exactKey(venueQuery),
       name_search: normalizeString(team.name),
       country_search: normalizeString(team.country),
       national: team.national ? "true" : "false",
-    })),
-    "id"
-  );
+    });
 
-  const redisClient = await ensureRedisConnected();
+    if (leagueSeasonTag) {
+      initialPipeline.sAdd(`${redisKey}:leagueSeason`, leagueSeasonTag);
+    }
+  }
+
+  await initialPipeline.exec();
+
+  if (leagueQuery && seasonQuery) {
+    const readSetsPipeline = redisClient.multi();
+
+    for (const team of teams) {
+      const redisKey = `${TEAMS_CONSTANTS.REDIS_PREFIX}:${team.id}`;
+      readSetsPipeline.sMembers(`${redisKey}:leagueSeason`);
+    }
+
+    const readSetsResultsRaw = await readSetsPipeline.exec();
+    const readSetsResults = readSetsResultsRaw.map(
+      (setResult) => setResult as unknown as string[]
+    );
+
+    const updateJsonPipeline = redisClient.multi();
+
+    for (let index = 0; index < teams.length; index++) {
+      const redisKey = `${TEAMS_CONSTANTS.REDIS_PREFIX}:${teams[index].id}`;
+      const allLeagueSeasonTagsForTeam = readSetsResults[index];
+
+      updateJsonPipeline.json.set(
+        redisKey,
+        "$.leagueSeason",
+        allLeagueSeasonTagsForTeam
+      );
+    }
+
+    await updateJsonPipeline.exec();
+  }
+
   const queryIndexedKey = getQueryIndexedKey(
     TEAMS_CONSTANTS.REDIS_INDEXED_KEY,
     querySignature
