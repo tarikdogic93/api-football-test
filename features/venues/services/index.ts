@@ -217,7 +217,7 @@ export async function getVenues({
     offset.toString(),
     pageSize.toString(),
     "RETURN",
-    "10",
+    "8",
     "$.id",
     "$.name",
     "$.city",
