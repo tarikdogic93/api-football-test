@@ -51,12 +51,13 @@ async function storeTeams(payload: StoreTeamsPayload): Promise<boolean> {
 
     const nestedUpdatedPayload: Record<string, any> = {};
 
-    if (leagueQuery)
-      nestedUpdatedPayload["queriedValues.league"] =
-        normalizeString(leagueQuery);
-    if (seasonQuery)
-      nestedUpdatedPayload["queriedValues.season"] =
-        normalizeString(seasonQuery);
+    if (leagueQuery && seasonQuery) {
+      nestedUpdatedPayload["queriedValues.leagueSeason"] = arrayUnion({
+        league: normalizeString(leagueQuery),
+        season: normalizeString(seasonQuery),
+      });
+    }
+
     if (venueQuery)
       nestedUpdatedPayload["queriedValues.venue"] = normalizeString(venueQuery);
     if (countryQuery)

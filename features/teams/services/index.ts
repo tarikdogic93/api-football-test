@@ -134,8 +134,10 @@ export async function getTeams({
       const snapshot = await getDocs(
         query(
           TEAMS_COLLECTION,
-          where("queriedValues.league", "==", normalizeString(leagueQuery)),
-          where("queriedValues.season", "==", normalizeString(seasonQuery)),
+          where("queriedValues.leagueSeason", "array-contains", {
+            league: normalizeString(leagueQuery),
+            season: normalizeString(seasonQuery),
+          }),
           limit(1)
         )
       );
