@@ -10,7 +10,12 @@ import {
 
 import { db } from "@/lib/firebase";
 import { JOB_NAMES, ONE_DAY, VENUES_CONSTANTS } from "@/lib/constants";
-import { exactKey, getQueryIndexedKey, normalizeString } from "@/lib/utils";
+import {
+  buildQuerySignature,
+  exactKey,
+  getQueryIndexedKey,
+  normalizeString,
+} from "@/lib/utils";
 import {
   ensureRedisConnected,
   ensureIndexOnce,
@@ -37,20 +42,6 @@ type VenuesParams = VenuesQueryParams & {
   pageSize: number;
   offset: number;
 };
-
-function buildVenuesQuerySignature(params: VenuesQueryParams) {
-  return JSON.stringify({
-    idQuery: params.idQuery ?? null,
-    nameQuery: params.nameQuery ? normalizeString(params.nameQuery) : null,
-    cityQuery: params.cityQuery ? normalizeString(params.cityQuery) : null,
-    countryQuery: params.countryQuery
-      ? normalizeString(params.countryQuery)
-      : null,
-    searchQuery: params.searchQuery
-      ? normalizeString(params.searchQuery)
-      : null,
-  });
-}
 
 export function fetchVenuesFromAPI(query: VenuesQueryParams) {
   return fetchFromAPIFootball<VenueType[]>({
@@ -92,7 +83,7 @@ export async function getVenues({
     ],
   });
 
-  const currentQuerySignature = buildVenuesQuerySignature({
+  const currentQuerySignature = buildQuerySignature({
     idQuery,
     nameQuery,
     cityQuery,
