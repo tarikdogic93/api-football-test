@@ -10,13 +10,19 @@ import {
 
 import { db } from "@/lib/firebase";
 import { JOB_NAMES, ONE_DAY, TEAMS_CONSTANTS } from "@/lib/constants";
-import { exactKey, getQueryIndexedKey, normalizeString } from "@/lib/utils";
+import {
+  buildQuerySignature,
+  exactKey,
+  getQueryIndexedKey,
+  normalizeString,
+} from "@/lib/utils";
 import {
   ensureRedisConnected,
   ensureIndexOnce,
   parseRediSearchResults,
 } from "@/lib/redis";
 import { addBackgroundJob } from "@/lib/queue";
+import { fetchFromAPIFootball } from "@/lib/api-football";
 import { TeamsAPIResponse, TeamType } from "@/features/teams/types";
 
 const TEAMS_COLLECTION = collection(db, TEAMS_CONSTANTS.COLLECTION_PATH);
@@ -40,46 +46,21 @@ type TeamsParams = TeamsQueryParams & {
   offset: number;
 };
 
-function buildTeamsQuerySignature(params: TeamsQueryParams) {
-  return JSON.stringify({
-    idQuery: params.idQuery ?? null,
-    nameQuery: params.nameQuery ? normalizeString(params.nameQuery) : null,
-    leagueQuery: params.leagueQuery ?? null,
-    seasonQuery: params.seasonQuery ?? null,
-    countryQuery: params.countryQuery
-      ? normalizeString(params.countryQuery)
-      : null,
-    codeQuery: params.codeQuery ?? null,
-    venueQuery: params.venueQuery ?? null,
-    searchQuery: params.searchQuery
-      ? normalizeString(params.searchQuery)
-      : null,
+export function fetchTeamsFromAPI(query: TeamsQueryParams) {
+  return fetchFromAPIFootball<TeamType[]>({
+    endpoint: TEAMS_CONSTANTS.API_ENDPOINT,
+    query: {
+      id: query.idQuery,
+      name: query.nameQuery,
+      league: query.leagueQuery,
+      season: query.seasonQuery,
+      country: query.countryQuery,
+      code: query.codeQuery,
+      venue: query.venueQuery,
+      search: query.searchQuery,
+    },
+    transform: (json) => json.response.map((item: any) => item.team),
   });
-}
-
-export async function fetchTeamsFromAPI(query: TeamsQueryParams) {
-  const params = new URLSearchParams();
-
-  if (query.idQuery) params.set("id", query.idQuery);
-  if (query.nameQuery) params.set("name", query.nameQuery);
-  if (query.leagueQuery) params.set("league", query.leagueQuery);
-  if (query.seasonQuery) params.set("season", query.seasonQuery);
-  if (query.countryQuery) params.set("country", query.countryQuery);
-  if (query.codeQuery) params.set("code", query.codeQuery);
-  if (query.venueQuery) params.set("venue", query.venueQuery);
-  if (query.searchQuery) params.set("search", query.searchQuery);
-
-  const response = await fetch(
-    `https://v3.football.api-sports.io/teams?${params.toString()}`,
-    { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! } }
-  );
-
-  if (!response.ok) throw new Error(`API error ${response.status}`);
-
-  const json = await response.json();
-  const teams: TeamType[] = json.response.map((item: any) => item.team);
-
-  return teams;
 }
 
 export async function getTeams({
@@ -107,14 +88,14 @@ export async function getTeams({
       ["name_search", "TEXT"],
       ["country_exact", "TAG"],
       ["country_search", "TEXT"],
-      ["code", "TAG"],
+      ["code_exact", "TAG"],
       ["leagueId", "TAG"],
       ["season", "TAG"],
       ["venueId", "TAG"],
     ],
   });
 
-  const currentQuerySignature = buildTeamsQuerySignature({
+  const currentQuerySignature = buildQuerySignature({
     idQuery,
     nameQuery,
     leagueQuery,
@@ -128,7 +109,14 @@ export async function getTeams({
   const isSameQueryAsLastTime =
     !!lastFetchedQuerySignatures[currentQuerySignature];
 
-  const normalizedQueryValues = [countryQuery, searchQuery]
+  const normalizedQueryValues = [
+    leagueQuery,
+    seasonQuery,
+    countryQuery,
+    codeQuery,
+    venueQuery,
+    searchQuery,
+  ]
     .filter(Boolean)
     .map(normalizeString);
 
@@ -239,10 +227,10 @@ export async function getTeams({
   if (idQuery) filters.push(`@id:{${idQuery}}`);
   if (nameQuery) filters.push(`@name_exact:{${exactKey(nameQuery)}}`);
   if (countryQuery) filters.push(`@country_exact:{${exactKey(countryQuery)}}`);
-  if (codeQuery) filters.push(`@code:{${codeQuery}}`);
-  if (leagueQuery) filters.push(`@leagueId:{${leagueQuery}}`);
-  if (seasonQuery) filters.push(`@season:{${seasonQuery}}`);
-  if (venueQuery) filters.push(`@venueId:{${venueQuery}}`);
+  if (codeQuery) filters.push(`@code_exact:{${exactKey(codeQuery)}}`);
+  if (leagueQuery) filters.push(`@leagueId:{${exactKey(leagueQuery)}}`);
+  if (seasonQuery) filters.push(`@season:{${exactKey(seasonQuery)}}`);
+  if (venueQuery) filters.push(`@venueId:{${exactKey(venueQuery)}}`);
   if (searchQuery)
     filters.push(
       `(@name_search|country_search:*${normalizeString(searchQuery)}*)`
@@ -258,14 +246,13 @@ export async function getTeams({
     offset.toString(),
     pageSize.toString(),
     "RETURN",
-    "8",
+    "7",
     "$.id",
     "$.name",
     "$.country",
     "$.code",
-    "$.leagueId",
-    "$.season",
-    "$.venueId",
+    "$.founded",
+    "$.national",
     "$.logo",
     "DIALECT",
     "2",
@@ -280,9 +267,8 @@ export async function getTeams({
       "$.name",
       "$.country",
       "$.code",
-      "$.leagueId",
-      "$.season",
-      "$.venueId",
+      "$.founded",
+      "$.national",
       "$.logo",
     ]
   );
