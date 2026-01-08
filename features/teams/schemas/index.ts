@@ -96,7 +96,7 @@ export const searchTeamsSchema = z
     ];
 
     const hasValue = fields.some(
-      (key) => data[key as keyof typeof data]?.trim() !== ""
+      (key) => data[key as keyof typeof data] !== ""
     );
 
     if (!hasValue) {
@@ -122,6 +122,22 @@ export const searchTeamsSchema = z
         code: "custom",
         message: "League is required when season is provided",
         path: ["league"],
+      });
+    }
+
+    if (data.search && data.league) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Cannot use league with search",
+        path: ["league"],
+      });
+    }
+
+    if (data.search && data.season) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Cannot use season with search",
+        path: ["season"],
       });
     }
   });
