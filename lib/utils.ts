@@ -26,3 +26,21 @@ export function getQueryIndexedKey(
 ): string {
   return `${indexedKey}:${Buffer.from(querySignature).toString("base64")}`;
 }
+
+export function buildQuerySignature<T extends Record<string, any>>(params: T) {
+  const result: Record<string, any> = {};
+
+  for (const key in params) {
+    const value = params[key];
+
+    if (value == null) {
+      result[key] = null;
+    } else if (typeof value === "string") {
+      result[key] = normalizeString(value);
+    } else {
+      result[key] = value;
+    }
+  }
+
+  return JSON.stringify(result);
+}
