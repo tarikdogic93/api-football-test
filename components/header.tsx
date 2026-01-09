@@ -1,24 +1,31 @@
-import { Globe } from "lucide-react";
+import { LucideIcon } from "lucide-react";
+
 import { Skeleton } from "@/components/ui/skeleton";
 
-type TimezonesHeaderProps = {
+type HeaderProps = {
+  title: string;
+  icon?: LucideIcon;
   loading: boolean;
   currentPage: number;
   pageSize: number;
   total: number;
 };
 
-export default function TimezonesHeader({
+export default function Header({
+  title,
+  icon,
   loading,
   currentPage,
   pageSize,
   total,
-}: TimezonesHeaderProps) {
+}: HeaderProps) {
+  const Icon = icon;
+
   return (
     <header>
       <div className="flex items-center gap-3">
-        <Globe />
-        <h1 className="text-2xl font-bold">Timezones</h1>
+        {Icon && <Icon className="shrink-0" />}
+        <h1 className="text-2xl font-bold">{title}</h1>
       </div>
 
       {loading ? (
