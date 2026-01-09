@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Calendar } from "lucide-react";
 
 import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
-import PageSizeSelector from "@/components/page-size-selector";
-import MiniPagination from "@/components/mini-pagination";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
 import { SeasonsAPIResponse, SeasonType } from "@/features/seasons/types";
-import SeasonsSkeleton from "@/features/seasons/components/seasons-skeleton";
-import SeasonsList from "@/features/seasons/components/seasons-list";
+import SeasonsMain from "@/features/seasons/components/seasons-main";
 
 export default function SeasonsPage() {
   const [seasons, setSeasons] = useState<SeasonType[]>([]);
@@ -60,40 +60,31 @@ export default function SeasonsPage() {
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">Seasons</h1>
+      <Header
+        title="Seasons"
+        icon={Calendar}
+        loading={loading}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+      />
 
-      <div className="flex-1 flex flex-col justify-between">
-        {loading ? (
-          <SeasonsSkeleton pageSize={pageSize} />
-        ) : seasons.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            {error ? (
-              <p className="text-destructive">{error}</p>
-            ) : (
-              <p className="text-muted-foreground">No seasons were found</p>
-            )}
-          </div>
-        ) : (
-          <SeasonsList seasons={seasons} />
-        )}
-        {seasons.length > 0 && (
-          <div className="flex items-center justify-between">
-            <PageSizeSelector
-              pageSize={pageSize}
-              pageSizes={PAGE_SIZES}
-              disabled={loading}
-              onChange={handlePageSizeChange}
-            />
-            <div>
-              <MiniPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={goToPage}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
+      <div className="flex-1 flex flex-col gap-4 justify-between">
+        <SeasonsMain
+          seasons={seasons}
+          loading={loading}
+          error={error}
+          currentPage={currentPage}
+          pageSize={pageSize}
+        />
+        <Footer
+          pageSize={pageSize}
+          currentPage={currentPage}
+          total={total}
+          loading={loading}
+          onPageChange={goToPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </section>
   );

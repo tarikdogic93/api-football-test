@@ -1,18 +1,17 @@
 import { SeasonType } from "@/features/seasons/types";
+import Season from "@/features/seasons/components/season";
 
-type SeasonsListProps = {
+type SeasonsListPropsType = {
   seasons: SeasonType[];
+  offset: number;
 };
 
-export default function SeasonsList({ seasons }: SeasonsListProps) {
+export default function SeasonsList({ seasons, offset }: SeasonsListPropsType) {
   return (
-    <ul className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {seasons.map((season) => (
-        <li
-          key={season.year}
-          className="rounded-md border p-4 text-center font-medium"
-        >
-          {season.year}
+    <ul className="divide-y rounded-xl border">
+      {seasons.map((season, localIndex) => (
+        <li key={season.year}>
+          <Season year={season.year} index={localIndex + offset} />
         </li>
       ))}
     </ul>
