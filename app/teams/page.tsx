@@ -17,11 +17,12 @@ import {
 } from "@/components/ui/form";
 import PageSizeSelector from "@/components/page-size-selector";
 import MiniPagination from "@/components/mini-pagination";
+import CountriesCombobox from "@/components/countries-combobox";
+import VenuesCombobox from "@/components/venues-combobox";
 import { TeamsAPIResponse, TeamType } from "@/features/teams/types";
 import { searchTeamsSchema } from "@/features/teams/schemas";
 import TeamsSkeleton from "@/features/teams/components/teams-skeleton";
 import TeamsList from "@/features/teams/components/teams-list";
-import CountriesCombobox from "@/components/countries-combobox";
 
 type SearchFormValues = z.infer<typeof searchTeamsSchema>;
 
@@ -253,14 +254,15 @@ export default function TeamsPage() {
           <FormField
             control={form.control}
             name="venue"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem className="w-full md:w-1/5">
                 <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Venue ID..."
-                    {...field}
+                  <VenuesCombobox
+                    value={field.value || ""}
+                    onChange={(value) => field.onChange(value)}
                     disabled={loading}
+                    isInvalid={!!fieldState.error}
+                    selectedCountry={form.watch("country")}
                   />
                 </FormControl>
                 <FormMessage />
