@@ -3,11 +3,11 @@ import { Globe } from "lucide-react";
 import { ParsedTimezone, TimezoneType } from "@/features/timezones/types";
 import { parseTimezone } from "@/features/timezones/helpers";
 
-type TimezoneProps = TimezoneType & {
+type TimezonePropsType = TimezoneType & {
   index: number;
 };
 
-export default function Timezone({ name, index }: TimezoneProps) {
+export default function Timezone({ name, index }: TimezonePropsType) {
   const { continent, region, city }: ParsedTimezone = parseTimezone(name);
 
   const displayName = city || region;

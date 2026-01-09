@@ -2,7 +2,7 @@ import { PAGE_SIZES } from "@/lib/constants";
 import PageSizeSelector from "@/components/page-size-selector";
 import MiniPagination from "@/components/mini-pagination";
 
-type TimezonesFooterProps = {
+type FooterPropsType = {
   pageSize: number;
   currentPage: number;
   total: number;
@@ -18,7 +18,7 @@ export default function Footer({
   loading,
   onPageChange,
   onPageSizeChange,
-}: TimezonesFooterProps) {
+}: FooterPropsType) {
   const totalPages = Math.ceil(total / pageSize);
 
   if (total === 0) return null;

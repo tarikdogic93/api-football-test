@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-type PageSizeSelectorProps = {
+type PageSizeSelectorPropsType = {
   pageSize: number;
   pageSizes: number[];
   onChange: (value: number) => void;
@@ -22,7 +22,7 @@ export default function PageSizeSelector({
   pageSizes,
   onChange,
   disabled = false,
-}: PageSizeSelectorProps) {
+}: PageSizeSelectorPropsType) {
   const handleChange = (value: string) => {
     if (!disabled) {
       onChange(Number(value));

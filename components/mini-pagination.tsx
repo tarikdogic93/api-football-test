@@ -8,7 +8,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 
-type MiniPaginationProps = {
+type MiniPaginationPropsType = {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
@@ -20,7 +20,7 @@ export default function MiniPagination({
   totalPages,
   onPageChange,
   disabled = false,
-}: MiniPaginationProps) {
+}: MiniPaginationPropsType) {
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
     onPageChange(page);

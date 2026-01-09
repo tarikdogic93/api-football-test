@@ -1,10 +1,10 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-type TeamsSkeletonProps = {
+type TeamsSkeletonPropsType = {
   pageSize: number;
 };
 
-export default function TeamsSkeleton({ pageSize }: TeamsSkeletonProps) {
+export default function TeamsSkeleton({ pageSize }: TeamsSkeletonPropsType) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
       {Array.from({ length: 8 }).map((_, i) => (

@@ -1,12 +1,12 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-type TimezonesSkeletonProps = {
+type TimezonesSkeletonPropsType = {
   pageSize: number;
 };
 
 export default function TimezonesSkeleton({
   pageSize,
-}: TimezonesSkeletonProps) {
+}: TimezonesSkeletonPropsType) {
   return (
     <section className="divide-y rounded-xl border">
       {Array.from({ length: pageSize }).map((_, index) => (

@@ -3,9 +3,9 @@ import Image from "next/image";
 import { Card, CardContent } from "@/components/ui/card";
 import { CountryType } from "@/features/countries/types";
 
-type CountryProps = CountryType;
+type CountryPropsType = CountryType;
 
-export default function Country({ name, code, flag }: CountryProps) {
+export default function Country({ name, code, flag }: CountryPropsType) {
   return (
     <Card>
       <CardContent className="flex flex-col items-center gap-1">

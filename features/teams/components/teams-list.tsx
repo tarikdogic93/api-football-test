@@ -1,9 +1,9 @@
 import { TeamType } from "@/features/teams/types";
 import Team from "@/features/teams/components/team";
 
-type TeamsListProps = { teams: TeamType[] };
+type TeamsListPropsType = { teams: TeamType[] };
 
-export default function TeamsList({ teams }: TeamsListProps) {
+export default function TeamsList({ teams }: TeamsListPropsType) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
       {teams.map((team) => (

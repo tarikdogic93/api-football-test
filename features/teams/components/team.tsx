@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { TeamType } from "@/features/teams/types";
 
-type TeamProps = TeamType;
+type TeamPropsType = TeamType;
 
 export default function Team({
   name,
@@ -11,7 +11,7 @@ export default function Team({
   founded,
   national,
   logo,
-}: TeamProps) {
+}: TeamPropsType) {
   return (
     <div className="p-4 shadow rounded flex flex-col items-center text-center gap-1">
       <div className="relative w-28 h-28">

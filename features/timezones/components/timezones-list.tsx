@@ -1,7 +1,7 @@
 import { TimezoneType } from "@/features/timezones/types";
 import Timezone from "@/features/timezones/components/timezone";
 
-type TimezonesListProps = {
+type TimezonesListPropsType = {
   timezones: TimezoneType[];
   offset: number;
 };
@@ -9,7 +9,7 @@ type TimezonesListProps = {
 export default function TimezonesList({
   timezones,
   offset,
-}: TimezonesListProps) {
+}: TimezonesListPropsType) {
   return (
     <ul className="divide-y rounded-xl border">
       {timezones.map((timezone, localIndex) => (

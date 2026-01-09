@@ -2,7 +2,7 @@ import { TimezoneType } from "@/features/timezones/types";
 import TimezonesSkeleton from "@/features/timezones/components/timezones-skeleton";
 import TimezonesList from "@/features/timezones/components/timezones-list";
 
-type TimezonesMainProps = {
+type TimezonesMainPropsType = {
   timezones: TimezoneType[];
   loading: boolean;
   error: string;
@@ -16,7 +16,7 @@ export default function TimezonesMain({
   error,
   currentPage,
   pageSize,
-}: TimezonesMainProps) {
+}: TimezonesMainPropsType) {
   const offset = (currentPage - 1) * pageSize;
 
   if (loading) {

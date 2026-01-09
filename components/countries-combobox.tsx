@@ -21,7 +21,7 @@ import {
 import { CountriesAPIResponse, CountryType } from "@/features/countries/types";
 import { searchCountriesSchema } from "@/features/countries/schemas";
 
-type CountriesComboboxProps = {
+type CountriesComboboxPropsType = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -33,7 +33,7 @@ export default function CountriesCombobox({
   onChange,
   disabled,
   isInvalid,
-}: CountriesComboboxProps) {
+}: CountriesComboboxPropsType) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedSearchTerm, setAppliedSearchTerm] = useState("");

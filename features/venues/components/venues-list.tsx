@@ -1,11 +1,11 @@
 import { VenueType } from "@/features/venues/types";
 import Venue from "@/features/venues/components/venue";
 
-type VenuesListProps = {
+type VenuesListPropsType = {
   venues: VenueType[];
 };
 
-export default function VenuesList({ venues }: VenuesListProps) {
+export default function VenuesList({ venues }: VenuesListPropsType) {
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
       {venues.map((venue) => (

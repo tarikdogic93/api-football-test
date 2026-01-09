@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { VenueType } from "@/features/venues/types";
 
-type VenueProps = VenueType;
+type VenuePropsType = VenueType;
 
 export default function Venue({
   name,
@@ -11,7 +11,7 @@ export default function Venue({
   capacity,
   surface,
   image,
-}: VenueProps) {
+}: VenuePropsType) {
   return (
     <div className="p-4 shadow rounded flex flex-col items-center text-center gap-1">
       <div className="relative w-28 h-20">

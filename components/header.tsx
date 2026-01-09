@@ -2,7 +2,7 @@ import { LucideIcon } from "lucide-react";
 
 import { Skeleton } from "@/components/ui/skeleton";
 
-type HeaderProps = {
+type HeaderPropsType = {
   title: string;
   icon?: LucideIcon;
   loading: boolean;
@@ -18,7 +18,7 @@ export default function Header({
   currentPage,
   pageSize,
   total,
-}: HeaderProps) {
+}: HeaderPropsType) {
   const Icon = icon;
 
   return (

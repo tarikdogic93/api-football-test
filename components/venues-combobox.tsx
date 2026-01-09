@@ -20,7 +20,7 @@ import {
 import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 import { searchVenuesSchema } from "@/features/venues/schemas";
 
-type VenuesComboboxProps = {
+type VenuesComboboxPropsType = {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -34,7 +34,7 @@ export default function VenuesCombobox({
   disabled,
   isInvalid,
   selectedCountry,
-}: VenuesComboboxProps) {
+}: VenuesComboboxPropsType) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
