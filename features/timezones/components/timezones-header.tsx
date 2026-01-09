@@ -15,17 +15,17 @@ export default function TimezonesHeader({
   total,
 }: TimezonesHeaderProps) {
   return (
-    <header className="mb-4">
+    <header>
       <div className="flex items-center gap-3">
         <Globe />
         <h1 className="text-2xl font-bold">Timezones</h1>
       </div>
 
       {loading ? (
-        <Skeleton className="h-5 w-24 mt-1" />
+        <Skeleton className="h-5 w-24" />
       ) : (
         total > 0 && (
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {(currentPage - 1) * pageSize + 1}&#45;
             {Math.min(currentPage * pageSize, total)} of {total}
           </p>
