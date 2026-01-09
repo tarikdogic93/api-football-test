@@ -1,16 +1,30 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { TimezoneType } from "@/features/timezones/types";
+import { Globe } from "lucide-react";
 
-type TimezoneProps = TimezoneType;
+import { ParsedTimezone, TimezoneType } from "@/features/timezones/types";
+import { parseTimezone } from "@/features/timezones/helpers";
 
-export default function Timezone({ name }: TimezoneProps) {
+type TimezoneProps = TimezoneType & {
+  index: number;
+};
+
+export default function Timezone({ name, index }: TimezoneProps) {
+  const { continent, region, city }: ParsedTimezone = parseTimezone(name);
+
+  const displayName = city || region;
+  const fullLocation = city && region ? `${continent} / ${region}` : continent;
+
   return (
-    <Card>
-      <CardContent>
-        <p className="font-semibold text-primary text-center truncate max-w-full">
-          {name}
-        </p>
-      </CardContent>
-    </Card>
+    <div className="group flex items-center gap-4 px-4 py-3 transition-colors hover:bg-accent/30">
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-foreground text-xs font-medium">
+        {index + 1}
+      </div>
+      <div className="flex flex-1 items-center justify-between gap-4">
+        <div className="flex flex-col flex-1">
+          <span className="font-medium text-foreground">{displayName}</span>
+          <span className="text-xs text-muted-foreground">{fullLocation}</span>
+        </div>
+        <Globe className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+      </div>
+    </div>
   );
 }

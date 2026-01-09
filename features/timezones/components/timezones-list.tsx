@@ -3,13 +3,21 @@ import Timezone from "@/features/timezones/components/timezone";
 
 type TimezonesListProps = {
   timezones: TimezoneType[];
+  offset: number;
 };
 
-export default function TimezonesList({ timezones }: TimezonesListProps) {
+export default function TimezonesList({
+  timezones,
+  offset,
+}: TimezonesListProps) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {timezones.map((tz) => (
-        <Timezone key={tz.name} name={tz.name} />
+    <div className="divide-y rounded-xl border">
+      {timezones.map((timezone, localIndex) => (
+        <Timezone
+          key={timezone.name}
+          name={timezone.name}
+          index={localIndex + offset}
+        />
       ))}
     </div>
   );

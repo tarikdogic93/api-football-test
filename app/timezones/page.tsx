@@ -68,7 +68,7 @@ export default function TimezonesPage() {
         total={total}
       />
 
-      <div className="flex-1 flex flex-col justify-between">
+      <div className="flex-1 flex flex-col gap-4 justify-between">
         {loading ? (
           <TimezonesSkeleton pageSize={pageSize} />
         ) : timezones.length === 0 ? (
@@ -80,7 +80,10 @@ export default function TimezonesPage() {
             )}
           </div>
         ) : (
-          <TimezonesList timezones={timezones} />
+          <TimezonesList
+            timezones={timezones}
+            offset={(currentPage - 1) * pageSize}
+          />
         )}
         {timezones.length > 0 && (
           <div className="flex items-center justify-between">
