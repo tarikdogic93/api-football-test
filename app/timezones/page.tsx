@@ -7,6 +7,7 @@ import PageSizeSelector from "@/components/page-size-selector";
 import MiniPagination from "@/components/mini-pagination";
 import { TimezonesAPIResponse, TimezoneType } from "@/features/timezones/types";
 import TimezonesSkeleton from "@/features/timezones/components/timezones-skeleton";
+import TimezonesHeader from "@/features/timezones/components/timezones-header";
 import TimezonesList from "@/features/timezones/components/timezones-list";
 
 export default function TimezonesPage() {
@@ -60,7 +61,12 @@ export default function TimezonesPage() {
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <h1 className="text-2xl font-bold">Timezones</h1>
+      <TimezonesHeader
+        loading={loading}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+      />
 
       <div className="flex-1 flex flex-col justify-between">
         {loading ? (
