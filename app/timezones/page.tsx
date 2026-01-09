@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Globe } from "lucide-react";
 
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import Header from "@/components/header";
 import Footer from "@/components/footer";
 import { TimezonesAPIResponse, TimezoneType } from "@/features/timezones/types";
-import TimezonesHeader from "@/features/timezones/components/timezones-header";
 import TimezonesMain from "@/features/timezones/components/timezones-main";
 
 export default function TimezonesPage() {
@@ -59,7 +60,9 @@ export default function TimezonesPage() {
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <TimezonesHeader
+      <Header
+        title="Timezones"
+        icon={Globe}
         loading={loading}
         currentPage={currentPage}
         pageSize={pageSize}
