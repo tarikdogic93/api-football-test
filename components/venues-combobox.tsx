@@ -302,8 +302,10 @@ export default function VenuesCombobox({
       setSearchTerm("");
       setTotalVenues(0);
       setCurrentOffset(0);
+      onChange("");
+      setSelectedVenue(null);
     }
-  }, [selectedCountry, lastLoadedCountry]);
+  }, [selectedCountry, lastLoadedCountry, onChange]);
 
   const isInitialLoading = isLoading && venuesList.length === 0;
   const isLoadingMore = isLoading && venuesList.length > 0;
