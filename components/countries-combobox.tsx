@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Search, X } from "lucide-react";
 
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export default function CountriesCombobox({
 }: CountriesComboboxProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [appliedSearchTerm, setAppliedSearchTerm] = useState("");
   const [countriesList, setCountriesList] = useState<CountryType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [totalCountries, setTotalCountries] = useState(0);
@@ -46,12 +47,11 @@ export default function CountriesCombobox({
   const [error, setError] = useState("");
 
   const listContainerRef = useRef<HTMLDivElement>(null);
-  const hasSearchedRef = useRef(false);
   const countryRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const hasScrolledToSelectedCountryRef = useRef(false);
   const shouldAutoLoadRef = useRef(false);
 
-  const fetchCountries = async (reset = false) => {
+  const fetchCountries = async (reset = false, searchQuery = "") => {
     if (isLoading) return;
     setIsLoading(true);
     setError("");
@@ -59,7 +59,7 @@ export default function CountriesCombobox({
     const queryParams = new URLSearchParams();
     queryParams.set("pageSize", DEFAULT_PAGE_SIZE.toString());
     queryParams.set("offset", reset ? "0" : currentOffset.toString());
-    if (searchTerm) queryParams.set("search", searchTerm);
+    if (searchQuery) queryParams.set("search", searchQuery);
 
     try {
       const response = await fetch(`/api/countries?${queryParams.toString()}`);
@@ -85,9 +85,41 @@ export default function CountriesCombobox({
     }
   };
 
+  const handleSearchClick = () => {
+    if (!searchTerm) {
+      if (value) {
+        shouldAutoLoadRef.current = true;
+        hasScrolledToSelectedCountryRef.current = false;
+      }
+      setAppliedSearchTerm("");
+      setCountriesList([]);
+      fetchCountries(true, "");
+      return;
+    }
+
+    const validation = searchCountriesSchema.safeParse({
+      search: searchTerm,
+    });
+
+    if (validation.success) {
+      setAppliedSearchTerm(searchTerm);
+      fetchCountries(true, searchTerm);
+    } else {
+      setCountriesList([]);
+      setTotalCountries(0);
+      setCurrentOffset(0);
+    }
+  };
+
+  const handleClear = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onChange("");
+    setSelectedCountry(null);
+  };
+
   useEffect(() => {
     if (
-      !searchTerm &&
+      !appliedSearchTerm &&
       value &&
       !isLoading &&
       countriesList.length > 0 &&
@@ -97,13 +129,13 @@ export default function CountriesCombobox({
       const match = countriesList.find((country) => country.name === value);
 
       if (!match) {
-        fetchCountries();
+        fetchCountries(false, appliedSearchTerm);
       } else {
         shouldAutoLoadRef.current = false;
       }
     }
   }, [
-    searchTerm,
+    appliedSearchTerm,
     value,
     selectedCountry,
     isLoading,
@@ -112,17 +144,69 @@ export default function CountriesCombobox({
   ]);
 
   useEffect(() => {
-    if (isOpen && countriesList.length === 0 && !hasSearchedRef.current) {
-      if (searchTerm) {
+    if (
+      !appliedSearchTerm &&
+      value &&
+      selectedCountry &&
+      !hasScrolledToSelectedCountryRef.current &&
+      countriesList.length > 0
+    ) {
+      const match = countriesList.find((country) => country.name === value);
+
+      if (
+        match &&
+        (!shouldAutoLoadRef.current || countriesList.length >= totalCountries)
+      ) {
+        requestAnimationFrame(() => {
+          const selectedCountryElement = countryRefs.current[match.name];
+          const listContainerElement = listContainerRef.current;
+
+          if (selectedCountryElement && listContainerElement) {
+            hasScrolledToSelectedCountryRef.current = true;
+
+            const selectedCountryTop = selectedCountryElement.offsetTop;
+
+            const idealScrollTop =
+              selectedCountryTop -
+              listContainerElement.clientHeight / 2 +
+              selectedCountryElement.offsetHeight / 2;
+
+            const maxScrollTop =
+              listContainerElement.scrollHeight -
+              listContainerElement.clientHeight;
+
+            listContainerElement.scrollTo({
+              top: Math.min(idealScrollTop, maxScrollTop),
+              behavior: "smooth",
+            });
+          }
+        });
+      }
+    }
+  }, [
+    appliedSearchTerm,
+    value,
+    selectedCountry,
+    countriesList,
+    totalCountries,
+  ]);
+
+  useEffect(() => {
+    if (isOpen && countriesList.length === 0) {
+      if (appliedSearchTerm) {
         const validation = searchCountriesSchema.safeParse({
-          search: searchTerm,
+          search: appliedSearchTerm,
         });
 
         if (validation.success) {
-          fetchCountries(true);
+          fetchCountries(true, appliedSearchTerm);
         }
       } else {
-        fetchCountries(true);
+        if (value) {
+          shouldAutoLoadRef.current = true;
+          hasScrolledToSelectedCountryRef.current = false;
+        }
+        fetchCountries(true, "");
       }
     }
 
@@ -157,19 +241,18 @@ export default function CountriesCombobox({
     }
 
     if (!isOpen) {
-      hasSearchedRef.current = false;
       hasScrolledToSelectedCountryRef.current = false;
       shouldAutoLoadRef.current = false;
     }
-  }, [isOpen, selectedCountry, countriesList, searchTerm]);
+  }, [isOpen, selectedCountry, appliedSearchTerm, value]);
 
   const handleScroll = () => {
     const container = listContainerRef.current;
     if (!container || isLoading) return;
 
-    if (searchTerm) {
+    if (appliedSearchTerm) {
       const validation = searchCountriesSchema.safeParse({
-        search: searchTerm,
+        search: appliedSearchTerm,
       });
       if (!validation.success) return;
     }
@@ -181,43 +264,10 @@ export default function CountriesCombobox({
       container.scrollHeight - threshold
     ) {
       if (countriesList.length < totalCountries) {
-        fetchCountries();
+        fetchCountries(false, appliedSearchTerm);
       }
     }
   };
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const debounce = setTimeout(() => {
-      if (!searchTerm && hasSearchedRef.current) {
-        if (value) {
-          shouldAutoLoadRef.current = true;
-          hasScrolledToSelectedCountryRef.current = false;
-        }
-        fetchCountries(true);
-        return;
-      }
-
-      if (!searchTerm) return;
-
-      hasSearchedRef.current = true;
-
-      const validation = searchCountriesSchema.safeParse({
-        search: searchTerm,
-      });
-
-      if (validation.success) {
-        fetchCountries(true);
-      } else {
-        setCountriesList([]);
-        setTotalCountries(0);
-        setCurrentOffset(0);
-      }
-    }, 300);
-
-    return () => clearTimeout(debounce);
-  }, [searchTerm, isOpen]);
 
   useEffect(() => {
     if (!value) {
@@ -245,6 +295,15 @@ export default function CountriesCombobox({
           disabled={disabled}
           aria-invalid={isInvalid}
           className="min-w-0 bg-background hover:bg-background border-input justify-between px-3 font-normal"
+          onClick={() => {
+            if (appliedSearchTerm && !searchTerm) {
+              setAppliedSearchTerm("");
+              setCountriesList([]);
+            } else if (!appliedSearchTerm) {
+              setSearchTerm("");
+              setCountriesList([]);
+            }
+          }}
         >
           <div className="flex items-center gap-2 min-w-0">
             {value ? (
@@ -267,7 +326,14 @@ export default function CountriesCombobox({
               </span>
             )}
           </div>
-          <ChevronDown className="text-muted-foreground/80 shrink-0" />
+          <div className="flex items-center gap-1 ">
+            {value && (
+              <div onClick={handleClear}>
+                <X className="size-4 text-primary shrink-0" />
+              </div>
+            )}
+            <ChevronDown className="text-muted-foreground/80 shrink-0" />
+          </div>
         </Button>
       </PopoverTrigger>
 
@@ -275,12 +341,25 @@ export default function CountriesCombobox({
         className="border-input w-(--radix-popper-anchor-width) p-0"
         align="start"
       >
-        <Command>
-          <CommandInput
-            placeholder="Search countries..."
-            value={searchTerm}
-            onValueChange={setSearchTerm}
-          />
+        <Command shouldFilter={false}>
+          <div className="relative">
+            <CommandInput
+              placeholder="Search countries..."
+              value={searchTerm}
+              onValueChange={setSearchTerm}
+              showSearchIcon={false}
+              className="pr-5"
+            />
+            <Button
+              size="icon-sm"
+              variant="unstyled"
+              onClick={handleSearchClick}
+              disabled={isLoading}
+              className="absolute top-1/2 right-0.5 -translate-y-1/2 cursor-pointer"
+            >
+              <Search className="size-4 shrink-0" />
+            </Button>
+          </div>
 
           <CommandList
             ref={listContainerRef}
