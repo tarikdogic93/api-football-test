@@ -14,11 +14,7 @@ export default function TimezonesList({
     <ul className="divide-y rounded-xl border">
       {timezones.map((timezone, localIndex) => (
         <li key={timezone.name}>
-          <Timezone
-            key={timezone.name}
-            name={timezone.name}
-            index={localIndex + offset}
-          />
+          <Timezone name={timezone.name} index={localIndex + offset} />
         </li>
       ))}
     </ul>
