@@ -2,13 +2,11 @@
 
 import { useEffect, useState } from "react";
 
-import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
-import PageSizeSelector from "@/components/page-size-selector";
-import MiniPagination from "@/components/mini-pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import Footer from "@/components/footer";
 import { TimezonesAPIResponse, TimezoneType } from "@/features/timezones/types";
-import TimezonesSkeleton from "@/features/timezones/components/timezones-skeleton";
 import TimezonesHeader from "@/features/timezones/components/timezones-header";
-import TimezonesList from "@/features/timezones/components/timezones-list";
+import TimezonesMain from "@/features/timezones/components/timezones-main";
 
 export default function TimezonesPage() {
   const [timezones, setTimezones] = useState<TimezoneType[]>([]);
@@ -69,40 +67,21 @@ export default function TimezonesPage() {
       />
 
       <div className="flex-1 flex flex-col gap-4 justify-between">
-        {loading ? (
-          <TimezonesSkeleton pageSize={pageSize} />
-        ) : timezones.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            {error ? (
-              <p className="text-destructive">{error}</p>
-            ) : (
-              <p className="text-muted-foreground">No timezones were found</p>
-            )}
-          </div>
-        ) : (
-          <TimezonesList
-            timezones={timezones}
-            offset={(currentPage - 1) * pageSize}
-          />
-        )}
-        {timezones.length > 0 && (
-          <div className="flex items-center justify-between">
-            <PageSizeSelector
-              pageSize={pageSize}
-              pageSizes={PAGE_SIZES}
-              disabled={loading}
-              onChange={handlePageSizeChange}
-            />
-            <div>
-              <MiniPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={goToPage}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
+        <TimezonesMain
+          timezones={timezones}
+          loading={loading}
+          error={error}
+          currentPage={currentPage}
+          pageSize={pageSize}
+        />
+        <Footer
+          pageSize={pageSize}
+          currentPage={currentPage}
+          total={total}
+          loading={loading}
+          onPageChange={goToPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </section>
   );
