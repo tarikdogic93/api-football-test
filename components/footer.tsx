@@ -24,7 +24,7 @@ export default function Footer({
   if (total === 0) return null;
 
   return (
-    <div className="flex items-center justify-between">
+    <footer className="flex items-center justify-between">
       <PageSizeSelector
         pageSize={pageSize}
         pageSizes={PAGE_SIZES}
@@ -39,6 +39,6 @@ export default function Footer({
           disabled={loading}
         />
       </div>
-    </div>
+    </footer>
   );
 }
