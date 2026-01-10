@@ -1,11 +1,11 @@
 import {
+  Building2,
   Calendar,
   Earth,
   Globe,
   LucideIcon,
-  MapPin,
+  ShieldUser,
   Trophy,
-  Users,
 } from "lucide-react";
 
 type SidebarItemType = {
@@ -33,7 +33,7 @@ export const sidebarItems: SidebarItemType[] = [
   {
     title: "Venues",
     url: "/venues",
-    icon: MapPin,
+    icon: Building2,
   },
   {
     title: "Leagues",
@@ -43,6 +43,6 @@ export const sidebarItems: SidebarItemType[] = [
   {
     title: "Teams",
     url: "/teams",
-    icon: Users,
+    icon: ShieldUser,
   },
 ];
