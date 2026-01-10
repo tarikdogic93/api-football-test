@@ -1,3 +1,7 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 import { sidebarItems } from "@/config/sidebar";
 import {
   Sidebar,
@@ -11,6 +15,8 @@ import {
 } from "@/components/ui/sidebar";
 
 export function AppSidebar() {
+  const pathname = usePathname();
+
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
@@ -20,7 +26,13 @@ export function AppSidebar() {
             <SidebarMenu>
               {sidebarItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={
+                      pathname === item.url ||
+                      pathname.startsWith(`${item.url}/`)
+                    }
+                  >
                     <a href={item.url}>
                       <item.icon className="shrink-0" />
                       <span>{item.title}</span>
