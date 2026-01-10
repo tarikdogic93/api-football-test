@@ -12,11 +12,21 @@ export default function TimezonesList({
 }: TimezonesListPropsType) {
   return (
     <ul className="divide-y rounded-xl border">
-      {timezones.map((timezone, localIndex) => (
-        <li key={timezone.name}>
-          <Timezone name={timezone.name} index={localIndex + offset} />
-        </li>
-      ))}
+      {timezones.map((timezone, localIndex) => {
+        const isFirstInBatch = localIndex === 0;
+        const isLastInBatch = localIndex === timezones.length - 1;
+
+        return (
+          <li key={timezone.name}>
+            <Timezone
+              name={timezone.name}
+              index={localIndex + offset}
+              isFirstInBatch={isFirstInBatch}
+              isLastInBatch={isLastInBatch}
+            />
+          </li>
+        );
+      })}
     </ul>
   );
 }
