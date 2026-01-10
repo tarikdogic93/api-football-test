@@ -20,7 +20,7 @@ export default function Timezone({ name, index }: TimezonePropsType) {
       </div>
       <div className="flex flex-1 items-center justify-between gap-4">
         <div className="flex flex-col flex-1">
-          <span className="font-medium text-foreground">{displayName}</span>
+          <span className="font-medium">{displayName}</span>
           <span className="text-xs text-muted-foreground">{fullLocation}</span>
         </div>
         <Globe className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

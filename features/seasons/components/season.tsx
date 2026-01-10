@@ -13,7 +13,7 @@ export default function Season({ year, index }: SeasonPropsType) {
         {index + 1}
       </div>
       <div className="flex flex-1 items-center justify-between gap-4">
-        <span className="font-medium text-foreground">{year}</span>
+        <span className="font-medium">{year}</span>
         <Calendar className="size-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
     </div>
