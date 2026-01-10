@@ -1,7 +1,6 @@
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export type CountriesSkeletonPropsType = {
+type CountriesSkeletonPropsType = {
   pageSize: number;
 };
 
@@ -9,15 +8,16 @@ export default function CountriesSkeleton({
   pageSize,
 }: CountriesSkeletonPropsType) {
   return (
-    <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {Array.from({ length: pageSize }).map((_, i) => (
-        <Card key={i}>
-          <CardContent className="flex flex-col items-center gap-1">
-            <Skeleton className="h-10 w-16" />
-            <Skeleton className="h-6 w-20" />
-            <Skeleton className="h-5 w-10" />
-          </CardContent>
-        </Card>
+    <section className="divide-y rounded-xl border">
+      {Array.from({ length: pageSize }).map((_, index) => (
+        <div key={index} className="flex items-center gap-4 px-4 py-3">
+          <Skeleton className="size-8 rounded-full" />
+          <Skeleton className="w-15 h-10 rounded-md" />
+          <div className="flex-1 flex flex-col gap-0.5">
+            <Skeleton className="h-5.5 w-32" />
+            <Skeleton className="h-4 w-14 rounded-full" />
+          </div>
+        </div>
       ))}
     </section>
   );

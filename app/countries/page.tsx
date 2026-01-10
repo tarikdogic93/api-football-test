@@ -1,28 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Earth } from "lucide-react";
 import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 
-import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
-import PageSizeSelector from "@/components/page-size-selector";
-import MiniPagination from "@/components/mini-pagination";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
 import { CountriesAPIResponse, CountryType } from "@/features/countries/types";
-import { searchCountriesSchema } from "@/features/countries/schemas";
-import CountriesSkeleton from "@/features/countries/components/countries-skeleton";
-import CountriesList from "@/features/countries/components/countries-list";
-
-type SearchFormValues = z.infer<typeof searchCountriesSchema>;
+import CollapsibleSearch from "@/components/collapsible-search";
+import CountriesSearchForm, {
+  CountriesSearchValues,
+} from "@/features/countries/components/countries-search-form";
+import CountriesMain from "@/features/countries/components/countries-main";
 
 export default function CountriesPage() {
   const [countries, setCountries] = useState<CountryType[]>([]);
@@ -43,16 +33,7 @@ export default function CountriesPage() {
     code: "",
   });
 
-  const form = useForm<SearchFormValues>({
-    resolver: zodResolver(searchCountriesSchema),
-    defaultValues: {
-      name: "",
-      code: "",
-      search: "",
-    },
-  });
-
-  const handleSearch = (values: SearchFormValues) => {
+  const handleSearch = (values: CountriesSearchValues) => {
     setQueryParams({
       name: values.name || "",
       code: values.code || "",
@@ -108,109 +89,33 @@ export default function CountriesPage() {
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(handleSearch)}
-          className="flex flex-col md:flex-row gap-4 w-full"
-        >
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/3">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Exact name..."
-                    {...field}
-                    onChange={(event) => field.onChange(event)}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/3">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Exact code..."
-                    {...field}
-                    onChange={(event) => field.onChange(event)}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="search"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/3">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Partial name search..."
-                    {...field}
-                    onChange={(event) => field.onChange(event)}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" className="cursor-pointer" disabled={loading}>
-            Search
-          </Button>
-        </form>
-      </Form>
-
-      <div className="flex-1 flex flex-col justify-between">
-        {loading ? (
-          <CountriesSkeleton pageSize={pageSize} />
-        ) : countries.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            {error ? (
-              <p className="text-destructive">{error}</p>
-            ) : (
-              <p className="text-muted-foreground">
-                No countries were found matching your search
-              </p>
-            )}
-          </div>
-        ) : (
-          <CountriesList countries={countries} />
-        )}
-
-        {countries.length > 0 && (
-          <div className="flex items-center justify-between mt-4">
-            <PageSizeSelector
-              pageSize={pageSize}
-              pageSizes={PAGE_SIZES}
-              disabled={loading}
-              onChange={handlePageSizeChange}
-            />
-            <div>
-              <MiniPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={goToPage}
-                disabled={loading}
-              />
-            </div>
-          </div>
-        )}
+      <Header
+        title="Countries"
+        icon={Earth}
+        loading={loading}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+      />
+      <CollapsibleSearch title="Search countries">
+        <CountriesSearchForm onSearch={handleSearch} loading={loading} />
+      </CollapsibleSearch>
+      <div className="flex-1 flex flex-col gap-4 justify-between">
+        <CountriesMain
+          countries={countries}
+          loading={loading}
+          error={error}
+          currentPage={currentPage}
+          pageSize={pageSize}
+        />
+        <Footer
+          pageSize={pageSize}
+          currentPage={currentPage}
+          total={total}
+          loading={loading}
+          onPageChange={goToPage}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </div>
     </section>
   );

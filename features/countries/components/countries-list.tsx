@@ -1,21 +1,35 @@
+import { WORLD_DOCUMENT_ID } from "@/lib/constants";
 import { CountryType } from "@/features/countries/types";
 import Country from "@/features/countries/components/country";
 
 type CountriesListPropsType = {
   countries: CountryType[];
+  offset: number;
 };
 
-export default function CountriesList({ countries }: CountriesListPropsType) {
+export default function CountriesList({
+  countries,
+  offset,
+}: CountriesListPropsType) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {countries.map((country) => (
-        <Country
-          key={country.code}
-          name={country.name}
-          code={country.code}
-          flag={country.flag}
-        />
-      ))}
-    </div>
+    <ul className="divide-y rounded-xl border">
+      {countries.map((country, localIndex) => {
+        const isFirstInBatch = localIndex === 0;
+        const isLastInBatch = localIndex === countries.length - 1;
+
+        return (
+          <li key={country.code || WORLD_DOCUMENT_ID}>
+            <Country
+              name={country.name}
+              code={country.code || WORLD_DOCUMENT_ID}
+              flag={country.flag}
+              index={localIndex + offset}
+              isFirstInBatch={isFirstInBatch}
+              isLastInBatch={isLastInBatch}
+            />
+          </li>
+        );
+      })}
+    </ul>
   );
 }
