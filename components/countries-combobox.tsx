@@ -364,7 +364,7 @@ export default function CountriesCombobox({
           <CommandList
             ref={listContainerRef}
             onScroll={handleScroll}
-            className="max-h-60 overflow-y-auto"
+            className="max-h-36"
           >
             {isInitialLoading && (
               <div className="px-2 py-1.5 text-center text-sm text-muted-foreground">
@@ -401,6 +401,7 @@ export default function CountriesCombobox({
                   }
                   setIsOpen(false);
                 }}
+                className="rounded-none"
               >
                 {country.flag && (
                   <div className="relative w-5 h-4 mr-2 shrink-0">

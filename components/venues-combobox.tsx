@@ -376,7 +376,7 @@ export default function VenuesCombobox({
           <CommandList
             ref={listContainerRef}
             onScroll={handleScroll}
-            className="max-h-60 overflow-y-auto"
+            className="max-h-36"
           >
             {isInitialLoading && (
               <div className="px-2 py-1.5 text-center text-sm text-muted-foreground">
@@ -425,6 +425,7 @@ export default function VenuesCombobox({
                   }
                   setIsOpen(false);
                 }}
+                className="rounded-none"
               >
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="truncate">{venue.name}</span>
