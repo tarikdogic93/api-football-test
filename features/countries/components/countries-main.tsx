@@ -10,7 +10,7 @@ type CountriesMainPropsType = {
   pageSize: number;
 };
 
-export default function CountrisMain({
+export default function CountriesMain({
   countries,
   loading,
   error,
