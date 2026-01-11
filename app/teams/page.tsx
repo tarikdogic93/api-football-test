@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ShieldUser } from "lucide-react";
 
@@ -14,6 +15,22 @@ import TeamsSearchForm, {
 import TeamsMain from "@/features/teams/components/teams-main";
 
 export default function TeamsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const defaultSearchValues: TeamsSearchValues = {
+    id: searchParams.get("id") || "",
+    name: searchParams.get("name") || "",
+    league: searchParams.get("league") || "",
+    season: searchParams.get("season") || "",
+    country: searchParams.get("country") || "",
+    code: searchParams.get("code") || "",
+    venue: searchParams.get("venue") || "",
+    search: searchParams.get("search") || "",
+  };
+
+  const hasAnyQueryParams = Array.from(searchParams.keys()).length > 0;
+
   const [teams, setTeams] = useState<TeamType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -44,7 +61,22 @@ export default function TeamsPage() {
       venue: values.venue || "",
       search: values.search || "",
     });
+
     setCurrentPage(1);
+
+    const params = new URLSearchParams();
+
+    if (values.id) params.set("id", values.id);
+    if (values.name) params.set("name", values.name);
+    if (values.league) params.set("league", values.league);
+    if (values.season) params.set("season", values.season);
+    if (values.country) params.set("country", values.country);
+    if (values.code) params.set("code", values.code);
+    if (values.venue) params.set("venue", values.venue);
+    if (values.search) params.set("search", values.search);
+
+    const queryString = params.toString();
+    router.replace(queryString ? `/teams?${queryString}` : "/teams");
   };
 
   const areQueriesEmpty =
@@ -58,6 +90,22 @@ export default function TeamsPage() {
     !queryParams.search;
 
   const totalPages = Math.ceil(total / pageSize);
+
+  useEffect(() => {
+    const hasDefaultValues =
+      defaultSearchValues.id ||
+      defaultSearchValues.name ||
+      defaultSearchValues.league ||
+      defaultSearchValues.season ||
+      defaultSearchValues.country ||
+      defaultSearchValues.code ||
+      defaultSearchValues.venue ||
+      defaultSearchValues.search;
+
+    if (!!hasDefaultValues) {
+      handleSearch(defaultSearchValues);
+    }
+  }, []);
 
   useEffect(() => {
     if (areQueriesEmpty) return;
@@ -119,8 +167,12 @@ export default function TeamsPage() {
         pageSize={pageSize}
         total={total}
       />
-      <CollapsibleSearch title="Search teams">
-        <TeamsSearchForm onSearch={handleSearch} loading={loading} />
+      <CollapsibleSearch defaultOpen={hasAnyQueryParams} title="Search teams">
+        <TeamsSearchForm
+          onSearch={handleSearch}
+          loading={loading}
+          defaultValues={defaultSearchValues}
+        />
       </CollapsibleSearch>
       <div className="flex-1 flex flex-col gap-4 justify-between">
         <TeamsMain
