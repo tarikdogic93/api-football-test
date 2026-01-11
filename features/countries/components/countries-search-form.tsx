@@ -56,7 +56,7 @@ export default function CountriesSearchForm({
                   className="text-xs flex items-center gap-1.5"
                 >
                   <Type className="size-3" />
-                  Exact name
+                  Name
                 </Label>
                 <FormControl>
                   <Input
