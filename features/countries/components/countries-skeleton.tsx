@@ -15,7 +15,7 @@ export default function CountriesSkeleton({
           <Skeleton className="w-15 h-10 rounded-md" />
           <div className="flex-1 flex flex-col gap-0.5">
             <Skeleton className="h-5.5 w-32" />
-            <Skeleton className="h-4 w-14 rounded-full" />
+            <Skeleton className="h-4 w-14" />
           </div>
         </div>
       ))}
