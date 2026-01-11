@@ -63,6 +63,7 @@ export default function VenuesSearchForm({
                 </Label>
                 <FormControl>
                   <Input
+                    id="id"
                     autoComplete="off"
                     placeholder="e.g. 556"
                     {...field}
@@ -88,6 +89,7 @@ export default function VenuesSearchForm({
                 </Label>
                 <FormControl>
                   <Input
+                    id="name"
                     autoComplete="off"
                     placeholder="e.g. Old Trafford"
                     {...field}
@@ -113,6 +115,7 @@ export default function VenuesSearchForm({
                 </Label>
                 <FormControl>
                   <Input
+                    id="city"
                     autoComplete="off"
                     placeholder="e.g. Manchester"
                     {...field}
@@ -138,6 +141,7 @@ export default function VenuesSearchForm({
                 </Label>
                 <FormControl>
                   <CountriesCombobox
+                    id="country"
                     value={field.value || ""}
                     onChange={(value) => field.onChange(value)}
                     disabled={loading}
@@ -162,6 +166,7 @@ export default function VenuesSearchForm({
                 </Label>
                 <FormControl>
                   <Input
+                    id="search"
                     autoComplete="off"
                     placeholder="Search venues..."
                     {...field}
