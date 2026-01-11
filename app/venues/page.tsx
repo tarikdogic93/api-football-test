@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Building } from "lucide-react";
 
@@ -14,6 +15,19 @@ import VenuesSearchForm, {
 import VenuesMain from "@/features/venues/components/venues-main";
 
 export default function VenuesPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const defaultSearchValues: VenuesSearchValues = {
+    id: searchParams.get("id") || "",
+    name: searchParams.get("name") || "",
+    city: searchParams.get("city") || "",
+    country: searchParams.get("country") || "",
+    search: searchParams.get("search") || "",
+  };
+
+  const hasAnyQueryParams = Array.from(searchParams.keys()).length > 0;
+
   const [venues, setVenues] = useState<VenueType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -38,7 +52,19 @@ export default function VenuesPage() {
       country: values.country || "",
       search: values.search || "",
     });
+
     setCurrentPage(1);
+
+    const params = new URLSearchParams();
+
+    if (values.id) params.set("id", values.id);
+    if (values.name) params.set("name", values.name);
+    if (values.city) params.set("city", values.city);
+    if (values.country) params.set("country", values.country);
+    if (values.search) params.set("search", values.search);
+
+    const queryString = params.toString();
+    router.replace(queryString ? `/venues?${queryString}` : "/venues");
   };
 
   const areQueriesEmpty =
@@ -49,6 +75,19 @@ export default function VenuesPage() {
     !queryParams.search;
 
   const totalPages = Math.ceil(total / pageSize);
+
+  useEffect(() => {
+    const hasDefaultValues =
+      defaultSearchValues.id ||
+      defaultSearchValues.name ||
+      defaultSearchValues.city ||
+      defaultSearchValues.country ||
+      defaultSearchValues.search;
+
+    if (!!hasDefaultValues) {
+      handleSearch(defaultSearchValues);
+    }
+  }, []);
 
   useEffect(() => {
     if (areQueriesEmpty) return;
@@ -108,8 +147,12 @@ export default function VenuesPage() {
         pageSize={pageSize}
         total={total}
       />
-      <CollapsibleSearch title="Search venues">
-        <VenuesSearchForm onSearch={handleSearch} loading={loading} />
+      <CollapsibleSearch defaultOpen={hasAnyQueryParams} title="Search venues">
+        <VenuesSearchForm
+          onSearch={handleSearch}
+          loading={loading}
+          defaultValues={defaultSearchValues}
+        />
       </CollapsibleSearch>
       <div className="flex-1 flex flex-col gap-4 justify-between">
         <VenuesMain
