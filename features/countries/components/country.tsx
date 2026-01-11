@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Building, Code, Earth, Flag, ShieldUser } from "lucide-react";
+import { Building, Code, Earth, ImageIcon, ShieldUser } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,7 +48,7 @@ export default function Country({
               className="object-cover"
             />
           ) : (
-            <Flag className="size-5 text-muted-foreground" />
+            <ImageIcon className="size-5 text-muted-foreground" />
           )}
         </div>
         <div className="flex-1 flex flex-col">
