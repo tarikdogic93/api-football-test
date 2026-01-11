@@ -1,30 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { ShieldUser } from "lucide-react";
 
-import { DEFAULT_PAGE_SIZE, PAGE_SIZES } from "@/lib/constants";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormMessage,
-} from "@/components/ui/form";
-import PageSizeSelector from "@/components/page-size-selector";
-import MiniPagination from "@/components/mini-pagination";
-import CountriesCombobox from "@/components/countries-combobox";
-import VenuesCombobox from "@/components/venues-combobox";
+import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import CollapsibleSearch from "@/components/collapsible-search";
 import { TeamsAPIResponse, TeamType } from "@/features/teams/types";
-import { searchTeamsSchema } from "@/features/teams/schemas";
-import TeamsSkeleton from "@/features/teams/components/teams-skeleton";
-import TeamsList from "@/features/teams/components/teams-list";
-
-type SearchFormValues = z.infer<typeof searchTeamsSchema>;
+import TeamsSearchForm, {
+  TeamsSearchValues,
+} from "@/features/teams/components/teams-search-form";
+import TeamsMain from "@/features/teams/components/teams-main";
 
 export default function TeamsPage() {
   const [teams, setTeams] = useState<TeamType[]>([]);
@@ -46,21 +33,7 @@ export default function TeamsPage() {
     search: "",
   });
 
-  const form = useForm<SearchFormValues>({
-    resolver: zodResolver(searchTeamsSchema),
-    defaultValues: {
-      id: "",
-      name: "",
-      league: "",
-      season: "",
-      country: "",
-      code: "",
-      venue: "",
-      search: "",
-    },
-  });
-
-  const handleSearch = (values: SearchFormValues) => {
+  const handleSearch = (values: TeamsSearchValues) => {
     setQueryParams({
       id: values.id || "",
       name: values.name || "",
@@ -74,7 +47,7 @@ export default function TeamsPage() {
     setCurrentPage(1);
   };
 
-  const isQueryEmpty =
+  const areQueriesEmpty =
     !queryParams.id &&
     !queryParams.name &&
     !queryParams.league &&
@@ -87,7 +60,7 @@ export default function TeamsPage() {
   const totalPages = Math.ceil(total / pageSize);
 
   useEffect(() => {
-    if (isQueryEmpty) return;
+    if (areQueriesEmpty) return;
 
     async function load() {
       setLoading(true);
@@ -115,7 +88,7 @@ export default function TeamsPage() {
         const json: TeamsAPIResponse = await response.json();
 
         setTeams(json.teams);
-        setTotal(json.total ?? 0);
+        setTotal(json.total);
       } catch {
         setError("Could not load teams");
       } finally {
@@ -124,7 +97,7 @@ export default function TeamsPage() {
     }
 
     load();
-  }, [currentPage, pageSize, queryParams, isQueryEmpty]);
+  }, [currentPage, pageSize, queryParams, areQueriesEmpty]);
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -138,202 +111,35 @@ export default function TeamsPage() {
 
   return (
     <section className="p-6 h-full flex flex-col gap-4">
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(handleSearch)}
-          className="flex flex-col md:flex-row md:flex-wrap gap-4 w-full"
-        >
-          <FormField
-            control={form.control}
-            name="id"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="ID..."
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+      <Header
+        title="Teams"
+        icon={ShieldUser}
+        loading={loading}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={total}
+      />
+      <CollapsibleSearch title="Search teams">
+        <TeamsSearchForm onSearch={handleSearch} loading={loading} />
+      </CollapsibleSearch>
+      <div className="flex-1 flex flex-col gap-4 justify-between">
+        <TeamsMain
+          teams={teams}
+          loading={loading}
+          error={error}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          areQueriesEmpty={areQueriesEmpty}
+        />
+        {!areQueriesEmpty && (
+          <Footer
+            pageSize={pageSize}
+            currentPage={currentPage}
+            total={total}
+            loading={loading}
+            onPageChange={goToPage}
+            onPageSizeChange={handlePageSizeChange}
           />
-
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Exact name..."
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="league"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="League ID..."
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="season"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Season..."
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="country"
-            render={({ field, fieldState }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <CountriesCombobox
-                    value={field.value || ""}
-                    onChange={(value) => field.onChange(value)}
-                    disabled={loading}
-                    isInvalid={!!fieldState.error}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Team code..."
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="venue"
-            render={({ field, fieldState }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <VenuesCombobox
-                    value={field.value || ""}
-                    onChange={(value) => field.onChange(value)}
-                    disabled={loading}
-                    isInvalid={!!fieldState.error}
-                    selectedCountry={form.watch("country")}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="search"
-            render={({ field }) => (
-              <FormItem className="w-full md:w-1/5">
-                <FormControl>
-                  <Input
-                    autoComplete="off"
-                    placeholder="Partial name or country..."
-                    {...field}
-                    disabled={loading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" className="cursor-pointer" disabled={loading}>
-            Search
-          </Button>
-        </form>
-      </Form>
-
-      <div className="flex-1 flex flex-col justify-between">
-        {isQueryEmpty ? (
-          <div className="h-full flex items-center justify-center">
-            <p className="text-muted-foreground">
-              Please use the input fields above to search for teams
-            </p>
-          </div>
-        ) : loading ? (
-          <TeamsSkeleton pageSize={pageSize} />
-        ) : teams.length === 0 ? (
-          <div className="h-full flex items-center justify-center">
-            {error ? (
-              <p className="text-destructive">{error}</p>
-            ) : (
-              <p className="text-muted-foreground">
-                No teams were found matching your search
-              </p>
-            )}
-          </div>
-        ) : (
-          <TeamsList teams={teams} />
-        )}
-
-        {!isQueryEmpty && teams.length > 0 && (
-          <div className="flex items-center justify-between mt-4">
-            <PageSizeSelector
-              pageSize={pageSize}
-              pageSizes={PAGE_SIZES}
-              disabled={loading}
-              onChange={handlePageSizeChange}
-            />
-            <div>
-              <MiniPagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={goToPage}
-                disabled={loading}
-              />
-            </div>
-          </div>
         )}
       </div>
     </section>
