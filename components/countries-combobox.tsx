@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import { Check, ChevronDown, Search, X } from "lucide-react";
 
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
+import { normalizeString } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -52,6 +53,8 @@ export default function CountriesCombobox({
   const countryRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const hasScrolledToSelectedCountryRef = useRef(false);
   const shouldAutoLoadRef = useRef(false);
+
+  const normalizedValue = normalizeString(value);
 
   const fetchCountries = async (reset = false, searchQuery = "") => {
     if (isLoading) return;
@@ -128,7 +131,9 @@ export default function CountriesCombobox({
       countriesList.length < totalCountries &&
       (shouldAutoLoadRef.current || !selectedCountry)
     ) {
-      const match = countriesList.find((country) => country.name === value);
+      const match = countriesList.find(
+        (country) => normalizeString(country.name) === normalizedValue
+      );
 
       if (!match) {
         fetchCountries(false, appliedSearchTerm);
@@ -153,7 +158,9 @@ export default function CountriesCombobox({
       !hasScrolledToSelectedCountryRef.current &&
       countriesList.length > 0
     ) {
-      const match = countriesList.find((country) => country.name === value);
+      const match = countriesList.find(
+        (country) => normalizeString(country.name) === normalizedValue
+      );
 
       if (
         match &&
@@ -277,13 +284,19 @@ export default function CountriesCombobox({
       return;
     }
 
-    if (selectedCountry?.name === value) return;
+    if (normalizeString(selectedCountry?.name) === normalizedValue) return;
 
-    const match = countriesList.find((country) => country.name === value);
+    const match = countriesList.find(
+      (country) => normalizeString(country.name) === normalizedValue
+    );
     if (match) {
       setSelectedCountry(match);
+    } else if (countriesList.length === 0 && !isLoading) {
+      shouldAutoLoadRef.current = true;
+      hasScrolledToSelectedCountryRef.current = false;
+      fetchCountries(true, "");
     }
-  }, [value, countriesList, selectedCountry]);
+  }, [value, countriesList, selectedCountry, isLoading]);
 
   const isInitialLoading = isLoading && countriesList.length === 0;
   const isLoadingMore = isLoading && countriesList.length > 0;
@@ -395,7 +408,7 @@ export default function CountriesCombobox({
                   countryRefs.current[country.name] = element;
                 }}
                 onSelect={(selectedValue) => {
-                  if (value === selectedValue) {
+                  if (normalizedValue === normalizeString(selectedValue)) {
                     onChange("");
                     setSelectedCountry(null);
                   } else {
@@ -417,7 +430,7 @@ export default function CountriesCombobox({
                   </div>
                 )}
                 <span className="truncate">{country.name}</span>
-                {value === country.name && (
+                {normalizeString(country.name) === normalizedValue && (
                   <Check className="size-4 ml-auto shrink-0" />
                 )}
               </CommandItem>
