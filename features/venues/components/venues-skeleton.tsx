@@ -6,20 +6,25 @@ type VenuesSkeletonPropsType = {
 
 export default function VenuesSkeleton({ pageSize }: VenuesSkeletonPropsType) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-      {Array.from({ length: pageSize }).map((_, i) => (
-        <div
-          key={i}
-          className="p-4 shadow rounded flex flex-col items-center gap-1"
-        >
-          <Skeleton className="w-28 h-20" />
-          <Skeleton className="w-20 h-6" />
-          <Skeleton className="w-24 h-4" />
-          <Skeleton className="w-28 h-4" />
-          <Skeleton className="w-20 h-4" />
-          <Skeleton className="w-16 h-4" />
+    <section className="divide-y rounded-xl border">
+      {Array.from({ length: pageSize }).map((_, index) => (
+        <div key={index} className="flex items-center gap-4 px-4 py-3">
+          <Skeleton className="size-8 rounded-full" />
+          <Skeleton className="w-15 h-10" />
+          <div className="flex-1 flex flex-col gap-0.5">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5.5 w-32" />
+              <Skeleton className="h-5.5 w-16" />
+              <Skeleton className="h-5.5 w-16" />
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          </div>
         </div>
       ))}
-    </div>
+    </section>
   );
 }
