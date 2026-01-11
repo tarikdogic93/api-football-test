@@ -1,5 +1,5 @@
 import {
-  Building2,
+  Building,
   Calendar,
   Earth,
   Globe,
@@ -33,7 +33,7 @@ export const sidebarItems: SidebarItemType[] = [
   {
     title: "Venues",
     url: "/venues",
-    icon: Building2,
+    icon: Building,
   },
   {
     title: "Leagues",

@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Building2, Code, Earth, Flag, ShieldUser } from "lucide-react";
+import { Building, Code, Earth, Flag, ShieldUser } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -65,7 +65,7 @@ export default function Country({
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon-sm" asChild>
                 <Link href={`/venues?country=${encodeURIComponent(name)}`}>
-                  <Building2 className="size-4" />
+                  <Building className="size-4" />
                 </Link>
               </Button>
             </TooltipTrigger>
