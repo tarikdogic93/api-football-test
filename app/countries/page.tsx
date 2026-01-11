@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { Earth } from "lucide-react";
-import { z } from "zod";
 
 import { DEFAULT_PAGE_SIZE } from "@/lib/constants";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
-import { CountriesAPIResponse, CountryType } from "@/features/countries/types";
 import CollapsibleSearch from "@/components/collapsible-search";
+import { CountriesAPIResponse, CountryType } from "@/features/countries/types";
 import CountriesSearchForm, {
   CountriesSearchValues,
 } from "@/features/countries/components/countries-search-form";
@@ -23,11 +22,7 @@ export default function CountriesPage() {
   const [total, setTotal] = useState(0);
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
-  const [queryParams, setQueryParams] = useState<{
-    search: string;
-    name: string;
-    code: string;
-  }>({
+  const [queryParams, setQueryParams] = useState({
     search: "",
     name: "",
     code: "",
