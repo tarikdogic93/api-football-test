@@ -21,6 +21,7 @@ import { VenuesAPIResponse, VenueType } from "@/features/venues/types";
 import { searchVenuesSchema } from "@/features/venues/schemas";
 
 type VenuesComboboxPropsType = {
+  id: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -29,6 +30,7 @@ type VenuesComboboxPropsType = {
 };
 
 export default function VenuesCombobox({
+  id,
   value,
   onChange,
   disabled,
@@ -314,6 +316,7 @@ export default function VenuesCombobox({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           disabled={disabled}
