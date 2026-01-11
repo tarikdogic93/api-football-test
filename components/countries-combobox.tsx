@@ -22,6 +22,7 @@ import { CountriesAPIResponse, CountryType } from "@/features/countries/types";
 import { searchCountriesSchema } from "@/features/countries/schemas";
 
 type CountriesComboboxPropsType = {
+  id: string;
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
@@ -29,6 +30,7 @@ type CountriesComboboxPropsType = {
 };
 
 export default function CountriesCombobox({
+  id,
   value,
   onChange,
   disabled,
@@ -290,6 +292,7 @@ export default function CountriesCombobox({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           disabled={disabled}
