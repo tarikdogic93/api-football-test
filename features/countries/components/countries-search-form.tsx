@@ -87,7 +87,7 @@ export default function CountriesSearchForm({
                   <Input
                     id="code"
                     autoComplete="off"
-                    placeholder="e.g. GB"
+                    placeholder="e.g. GB-ENG"
                     disabled={loading}
                     {...field}
                   />
