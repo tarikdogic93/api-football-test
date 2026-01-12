@@ -51,7 +51,7 @@ export async function getCountries({
     indexName: COUNTRIES_CONSTANTS.REDIS_INDEX,
     prefix: COUNTRIES_CONSTANTS.REDIS_PREFIX,
     schema: [
-      ["code", "TAG"],
+      ["code_exact", "TAG"],
       ["name_exact", "TAG"],
       ["name_search", "TEXT"],
     ],
@@ -125,7 +125,7 @@ export async function getCountries({
   const filters: string[] = [];
 
   if (codeQuery) {
-    filters.push(`@code:{${codeQuery}}`);
+    filters.push(`@code_exact:{${exactKey(codeQuery)}}`);
   }
 
   if (nameQuery) {

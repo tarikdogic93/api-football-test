@@ -46,7 +46,7 @@ async function storeCountries(
     COUNTRIES_CONSTANTS.REDIS_PREFIX,
     countries.map((country) => ({
       ...country,
-      code: country.code ?? WORLD_DOCUMENT_ID,
+      code_exact: exactKey(country.code ?? WORLD_DOCUMENT_ID),
       name_exact: exactKey(country.name),
       name_search: normalizeString(country.name),
     })),
